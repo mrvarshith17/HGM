@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Navigation from '@/components/navigation'
 import { Button } from '@/components/ui/button'
-import { Calendar, Users, CheckCircle, TrendingUp, Clock, Phone, Mail, Scissors, Trash2 } from 'lucide-react'
+import { Calendar, Users, CheckCircle, TrendingUp, Clock, Phone, Mail, Scissors, Trash2, Star } from 'lucide-react'
 import { formatTimeWith12Hour, formatAppointmentDate } from '@/lib/utils'
+import { roundRating, getStarStates } from '@/lib/rating-utils'
 
 interface Booking {
   id: string
@@ -200,9 +201,9 @@ export default function SalonDashboardPage() {
         ))
         .sort((a, b) => getBookingTimestamp(a) - getBookingTimestamp(b))
 
-      // Calculate average rating from reviews
+      // Calculate average rating from reviews using custom rounding
       const averageRating = allReviews.length > 0
-        ? Number((allReviews.reduce((sum: number, review: Review) => sum + review.rating, 0) / allReviews.length).toFixed(1))
+        ? roundRating(allReviews.reduce((sum: number, review: Review) => sum + review.rating, 0) / allReviews.length)
         : 0
 
       setBookings(todayBookings)
@@ -348,45 +349,72 @@ export default function SalonDashboardPage() {
               </div>
 
               <div className="grid gap-4">
-                {salons.map((salon) => (
-                  <div key={salon.id} className="rounded-lg border border-slate-700 bg-slate-800/30 p-5">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold text-white">{salon.name}</h3>
-                        <p className="mt-1 text-sm text-slate-400">{salon.address}</p>
-                        <p className="mt-1 text-sm text-slate-400">{salon.phone}</p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteSalon(salon)}
-                        disabled={deletingSalonId === salon.id}
-                        className="border-red-600/30 text-red-300 hover:bg-red-900/20"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        {deletingSalonId === salon.id ? 'Deleting...' : 'Delete'}
-                      </Button>
-                    </div>
+                {salons.map((salon) => {
+                  const salonReviews = reviews.filter((review) => review.salonId === salon.id)
+                  const salonRating = salonReviews.length > 0
+                    ? roundRating(salonReviews.reduce((sum: number, review: Review) => sum + review.rating, 0) / salonReviews.length)
+                    : 0
 
-                    {(salon.services ?? []).length > 0 && (
-                      <div className="mt-4">
-                        <p className="mb-2 text-xs text-slate-400">Services Provided</p>
-                        <div className="flex flex-wrap gap-2">
-                          {(salon.services ?? []).map((service) => (
-                            <span
-                              key={service}
-                              className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-xs text-indigo-100"
-                            >
-                              <Scissors className="h-3.5 w-3.5" />
-                              {service}
-                            </span>
-                          ))}
+                  return (
+                    <div key={salon.id} className="rounded-lg border border-slate-700 bg-slate-800/30 p-5">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-white">{salon.name}</h3>
+                          <p className="mt-1 text-sm text-slate-400">{salon.address}</p>
+                          <p className="mt-1 text-sm text-slate-400">{salon.phone}</p>
+                          
+                          {salonRating > 0 && (
+                            <div className="flex items-center gap-2 mt-3">
+                              <div className="flex items-center gap-1">
+                                {getStarStates(salonRating).map((state, i) => (
+                                  <div key={i} className="relative h-4 w-4">
+                                    <Star className="h-4 w-4 text-slate-600" />
+                                    {(state === 'full' || state === 'half') && (
+                                      <div className="absolute top-0 left-0 h-4 overflow-hidden" style={{ width: state === 'full' ? '100%' : '50%' }}>
+                                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                              <span className="text-sm text-slate-300">
+                                {salonRating.toFixed(1)} ({salonReviews.length} {salonReviews.length === 1 ? 'review' : 'reviews'})
+                              </span>
+                            </div>
+                          )}
                         </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteSalon(salon)}
+                          disabled={deletingSalonId === salon.id}
+                          className="border-red-600/30 text-red-300 hover:bg-red-900/20"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          {deletingSalonId === salon.id ? 'Deleting...' : 'Delete'}
+                        </Button>
                       </div>
-                    )}
-                  </div>
-                ))}
+
+                      {(salon.services ?? []).length > 0 && (
+                        <div className="mt-4">
+                          <p className="mb-2 text-xs text-slate-400">Services Provided</p>
+                          <div className="flex flex-wrap gap-2">
+                            {(salon.services ?? []).map((service) => (
+                              <span
+                                key={service}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-xs text-indigo-100"
+                              >
+                                <Scissors className="h-3.5 w-3.5" />
+                                {service}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -578,60 +606,80 @@ export default function SalonDashboardPage() {
             )}
           </div>
 
-          {/* Customer Reviews */}
+          {/* Customer Reviews - Organized by Salon */}
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 backdrop-blur p-8 mt-8">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-white">Customer Reviews</h2>
-                {stats && stats.averageRating > 0 && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <div className="flex">
-                      {[...Array(5)].map((_, i) => (
-                        <span
-                          key={i}
-                          className={`text-lg ${i < Math.floor(stats.averageRating) ? 'text-yellow-400' : 'text-slate-600'}`}
-                        >
-                          ★
-                        </span>
-                      ))}
-                    </div>
-                    <span className="text-sm text-slate-300">
-                      {stats.averageRating} ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
+            <h2 className="text-2xl font-bold text-white mb-6">Customer Reviews</h2>
 
             {reviews.length === 0 ? (
               <p className="text-slate-400 text-center py-8">No reviews yet. Great reviews from customers will appear here!</p>
             ) : (
-              <div className="space-y-4">
-                {reviews.map((review) => (
-                  <div key={review.id} className="rounded-lg border border-slate-700 bg-slate-800/30 p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="text-lg font-semibold text-white">{review.userName}</h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          <div className="flex">
-                            {[...Array(5)].map((_, i) => (
-                              <span
-                                key={i}
-                                className={`text-sm ${i < review.rating ? 'text-yellow-400' : 'text-slate-600'}`}
-                              >
-                                ★
-                              </span>
+              <div className="space-y-8">
+                {salons.map((salon) => {
+                  const salonReviews = reviews.filter((review) => review.salonId === salon.id)
+                  
+                  if (salonReviews.length === 0) {
+                    return null
+                  }
+
+                  const averageRating = salonReviews.length > 0
+                    ? salonReviews.reduce((sum: number, review: Review) => sum + review.rating, 0) / salonReviews.length
+                    : 0
+
+                  return (
+                    <div key={salon.id} className="border-b border-slate-700 pb-6 last:border-0">
+                      <div className="mb-4">
+                        <h3 className="text-xl font-semibold text-white mb-2">{salon.name}</h3>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1">
+                            {getStarStates(averageRating).map((state, i) => (
+                              <div key={i} className="relative h-4 w-4">
+                                <Star className="h-4 w-4 text-slate-600" />
+                                {(state === 'full' || state === 'half') && (
+                                  <div className="absolute top-0 left-0 h-4 overflow-hidden" style={{ width: state === 'full' ? '100%' : '50%' }}>
+                                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                  </div>
+                                )}
+                              </div>
                             ))}
                           </div>
-                          <span className="text-xs text-slate-400">
-                            {new Date(review.createdAt).toLocaleDateString()}
+                          <span className="text-sm text-slate-300">
+                            {averageRating.toFixed(1)} ({salonReviews.length} {salonReviews.length === 1 ? 'review' : 'reviews'})
                           </span>
                         </div>
                       </div>
+
+                      <div className="space-y-3">
+                        {salonReviews.map((review) => (
+                          <div key={review.id} className="rounded-lg border border-slate-700 bg-slate-800/30 p-4">
+                            <div className="flex items-start justify-between mb-3">
+                              <div>
+                                <h4 className="font-semibold text-white">{review.userName}</h4>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <div className="flex">
+                                    {getStarStates(review.rating).map((state, i) => (
+                                      <div key={i} className="relative h-3 w-3">
+                                        <Star className="h-3 w-3 text-slate-600" />
+                                        {(state === 'full' || state === 'half') && (
+                                          <div className="absolute top-0 left-0 h-3 overflow-hidden" style={{ width: state === 'full' ? '100%' : '50%' }}>
+                                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <span className="text-xs text-slate-400">
+                                    {new Date(review.createdAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <p className="text-slate-300 text-sm">{review.comment}</p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <p className="text-slate-300 text-sm">{review.comment}</p>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>

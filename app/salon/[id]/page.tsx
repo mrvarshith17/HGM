@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Navigation from '@/components/navigation'
 import { Button } from '@/components/ui/button'
 import { Check, MapPin, Phone, Mail, Scissors, Star, Calendar } from 'lucide-react'
+import { getStarStates } from '@/lib/rating-utils'
 
 interface Salon {
   id: string
@@ -74,6 +75,20 @@ export default function SalonDetailPage() {
   useEffect(() => {
     fetchSalonDetails()
   }, [fetchSalonDetails])
+
+  useEffect(() => {
+    const handleReviewSubmitted = (event: Event) => {
+      const customEvent = event as CustomEvent
+      console.log('Salon detail page received review submission event for:', customEvent.detail?.salonId)
+      if (customEvent.detail?.salonId === salonId) {
+        console.log('Refreshing salon details for:', salonId)
+        fetchSalonDetails()
+      }
+    }
+    
+    window.addEventListener('salonReviewSubmitted', handleReviewSubmitted)
+    return () => window.removeEventListener('salonReviewSubmitted', handleReviewSubmitted)
+  }, [fetchSalonDetails, salonId])
 
   const toggleService = (service: string) => {
     setSelectedServices((currentServices) =>
@@ -194,13 +209,15 @@ export default function SalonDetailPage() {
 
               <div className="flex items-center gap-4 mb-6 flex-wrap">
                 <div className="flex items-center gap-2">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`h-5 w-5 ${
-                        i < Math.round(salon.rating) ? 'fill-yellow-400 text-yellow-400' : 'text-slate-600'
-                      }`}
-                    />
+                  {getStarStates(salon.rating).map((state, i) => (
+                    <div key={i} className="relative h-5 w-5">
+                      <Star className="h-5 w-5 text-slate-600" />
+                      {(state === 'full' || state === 'half') && (
+                        <div className="absolute top-0 left-0 h-5 overflow-hidden" style={{ width: state === 'full' ? '100%' : '50%' }}>
+                          <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                        </div>
+                      )}
+                    </div>
                   ))}
                   <span className="text-white font-semibold">{salon.rating.toFixed(1)}</span>
                   <span className="text-slate-400">({salon.reviewCount} reviews)</span>
@@ -257,13 +274,15 @@ export default function SalonDetailPage() {
                     reviews.map((review) => (
                       <div key={review.id} className="border-b border-slate-700 pb-4 last:border-0">
                         <div className="flex items-center gap-2 mb-2">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`h-4 w-4 ${
-                                i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-slate-600'
-                              }`}
-                            />
+                          {getStarStates(review.rating).map((state, i) => (
+                            <div key={i} className="relative h-4 w-4">
+                              <Star className="h-4 w-4 text-slate-600" />
+                              {(state === 'full' || state === 'half') && (
+                                <div className="absolute top-0 left-0 h-4 overflow-hidden" style={{ width: state === 'full' ? '100%' : '50%' }}>
+                                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                </div>
+                              )}
+                            </div>
                           ))}
                         </div>
                         <p className="text-slate-300">{review.comment}</p>

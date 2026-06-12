@@ -2,6 +2,7 @@ import { promises as fs } from 'fs'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
 import { readLocalSalons, writeLocalSalons } from '@/lib/local-salon-store'
+import { roundRating } from '@/lib/rating-utils'
 
 export type LocalReview = {
   id: string
@@ -77,9 +78,13 @@ export async function recalculateLocalSalonRating(salonId: string) {
   }
 
   salon.reviewCount = reviews.length
-  salon.rating = reviews.length
-    ? Number((reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1))
-    : 0
+  if (reviews.length > 0) {
+    const average = reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+    salon.rating = roundRating(average)
+    console.log(`[Rating Update] Salon ${salonId}: ${reviews.length} reviews, average ${average.toFixed(2)}, rounded rating ${salon.rating}`)
+  } else {
+    salon.rating = 0
+  }
   salon.updatedAt = new Date().toISOString()
   await writeLocalSalons(salons)
   return salon

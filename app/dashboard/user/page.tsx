@@ -171,7 +171,13 @@ export default function UserDashboardPage() {
         ...current,
         [bookingId]: { rating: 5, comment: '' },
       }))
-      alert('Review submitted successfully')
+      alert('Review submitted successfully! The salon ratings are now updated.')
+      
+      // Clear any cached salon data so it will be re-fetched with updated ratings
+      if (typeof window !== 'undefined') {
+        console.log('Dispatching salonReviewSubmitted event for salonId:', booking.salonId)
+        window.dispatchEvent(new CustomEvent('salonReviewSubmitted', { detail: { salonId: booking.salonId } }))
+      }
     } catch (error) {
       console.error('Review submit error:', error)
       alert(error instanceof Error ? error.message : 'Failed to submit review')

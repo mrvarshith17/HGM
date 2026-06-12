@@ -7,6 +7,7 @@ import {
   findLocalReviewsBySalonId,
   type LocalReview,
 } from '@/lib/local-review-store'
+import { roundRating } from '@/lib/rating-utils'
 
 export const runtime = 'nodejs'
 
@@ -112,7 +113,7 @@ async function recalculateRemoteSalonRating(salonId: string) {
   const reviews = await getRemoteReviewsBySalonId(salonId)
   const reviewCount = reviews.length
   const rating = reviewCount
-    ? Number((reviews.reduce((sum: number, review: SerializedReview) => sum + review.rating, 0) / reviewCount).toFixed(1))
+    ? roundRating(reviews.reduce((sum: number, review: SerializedReview) => sum + review.rating, 0) / reviewCount)
     : 0
 
   await adminDb.collection('salons').doc(salonId).set(

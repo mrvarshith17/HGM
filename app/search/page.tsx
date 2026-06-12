@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import Navigation from '@/components/navigation'
 import { MapPin, Star, Search } from 'lucide-react'
 import { getSalonCity } from '@/lib/location'
+import { getStarStates } from '@/lib/rating-utils'
 
 interface Salon {
   id: string
@@ -58,6 +59,16 @@ export default function SearchPage() {
 
   useEffect(() => {
     fetchSalons()
+  }, [fetchSalons])
+
+  useEffect(() => {
+    const handleReviewSubmitted = () => {
+      console.log('Review submitted event received, refreshing salons...')
+      fetchSalons()
+    }
+    
+    window.addEventListener('salonReviewSubmitted', handleReviewSubmitted)
+    return () => window.removeEventListener('salonReviewSubmitted', handleReviewSubmitted)
   }, [fetchSalons])
 
   const filteredSalons = useMemo(() => {
@@ -148,13 +159,15 @@ export default function SearchPage() {
 
                       <div className="flex items-center gap-2 mb-3">
                         <div className="flex items-center gap-1">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`h-4 w-4 ${
-                                i < Math.round(salon.rating) ? 'fill-yellow-400 text-yellow-400' : 'text-slate-600'
-                              }`}
-                            />
+                          {getStarStates(salon.rating).map((state, i) => (
+                            <div key={i} className="relative h-4 w-4">
+                              <Star className="h-4 w-4 text-slate-600" />
+                              {(state === 'full' || state === 'half') && (
+                                <div className="absolute top-0 left-0 h-4 overflow-hidden" style={{ width: state === 'full' ? '100%' : '50%' }}>
+                                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                </div>
+                              )}
+                            </div>
                           ))}
                         </div>
                         <span className="text-sm text-slate-400">({salon.reviewCount} reviews)</span>

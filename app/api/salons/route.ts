@@ -39,7 +39,11 @@ export async function GET(request: NextRequest) {
     const queryString = searchParams.toString()
     const url = queryString ? `${API_URL}/salons?${queryString}` : `${API_URL}/salons`
 
-    const response = await fetch(url)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 3000) // 3 second timeout
+
+    const response = await fetch(url, { signal: controller.signal })
+    clearTimeout(timeout)
     const data = await response.json()
 
     if (!response.ok) {
@@ -59,7 +63,7 @@ export async function GET(request: NextRequest) {
     }
     return NextResponse.json(salons)
   } catch (error) {
-    console.error('Salons route error, using local salon store:', error)
+    // Silently fallback to local store - backend is optional
     let salons = await readLocalSalons()
     const searchParams = new URL(request.url).searchParams
     const ownerId = searchParams.get('ownerId')
