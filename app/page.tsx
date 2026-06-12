@@ -31,7 +31,7 @@ export default function Home() {
                 </Button>
               </Link>
               <Link href="/auth/register">
-                <Button variant="outline" className="h-12 border-slate-600 px-8 text-base text-white hover:bg-slate-800">
+                <Button className="h-12 bg-purple-600 px-8 text-base text-white hover:bg-purple-700">
                   Join as Salon Owner
                 </Button>
               </Link>
