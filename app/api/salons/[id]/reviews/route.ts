@@ -5,6 +5,7 @@ import {
   addLocalReview,
   findLocalReviewByBookingId,
   findLocalReviewsBySalonId,
+  recalculateLocalSalonRating,
   type LocalReview,
 } from '@/lib/local-review-store'
 import { roundRating } from '@/lib/rating-utils'
@@ -219,6 +220,9 @@ export async function POST(
 
     await adminDb.collection('reviews').doc(body.bookingId).set(review)
     await recalculateRemoteSalonRating(id)
+    
+    // Also update local store to keep it in sync
+    await recalculateLocalSalonRating(id)
 
     return NextResponse.json(
       {
