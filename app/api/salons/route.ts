@@ -1,10 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { addLocalSalon, readLocalSalons } from '@/lib/local-salon-store'
+import { addLocalSalon, readLocalSalons, writeLocalSalons } from '@/lib/local-salon-store'
 import { getSalonCity } from '@/lib/location'
+import { findLocalReviewsBySalonId } from '@/lib/local-review-store'
+import { roundRating } from '@/lib/rating-utils'
+import { adminDb } from '@/lib/firebase-admin'
 
 export const runtime = 'nodejs'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+
+// Function to get reviews from Firebase for a salon
+async function getFirebaseReviewsForSalon(salonId: string) {
+  try {
+    const snapshot = await adminDb
+      .collection('reviews')
+      .where('salonId', '==', salonId)
+      .get()
+    
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      rating: Number(doc.data().rating || 0),
+      ...doc.data()
+    }))
+  } catch (error) {
+    console.error(`Error fetching Firebase reviews for salon ${salonId}:`, error)
+    return []
+  }
+}
+
+// Function to calculate salon rating from all reviews (Firebase + local)
+async function calculateSalonRatingWithReviews(salon: any) {
+  try {
+    const firebaseReviews = await getFirebaseReviewsForSalon(salon.id)
+    const localReviews = await findLocalReviewsBySalonId(salon.id)
+    
+    // Combine reviews, avoiding duplicates by booking ID
+    const allReviews = []
+    const seen = new Set()
+    
+    for (const review of [...firebaseReviews, ...localReviews]) {
+      const key = review.bookingId || review.id
+      if (!seen.has(key)) {
+        allReviews.push(review)
+        seen.add(key)
+      }
+    }
+    
+    if (allReviews.length > 0) {
+      const average = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length
+      return {
+        ...salon,
+        rating: roundRating(average),
+        reviewCount: allReviews.length
+      }
+    }
+  } catch (error) {
+    console.error(`Error calculating rating for salon ${salon.id}:`, error)
+  }
+  
+  return salon
+}
 
 type SalonPayload = {
   ownerId?: string
@@ -53,6 +108,8 @@ export async function GET(request: NextRequest) {
       if (ownerId) {
         salons = salons.filter(s => s.ownerId === ownerId)
       }
+      // Calculate ratings with reviews
+      salons = await Promise.all(salons.map(salon => calculateSalonRatingWithReviews(salon)))
       return NextResponse.json(salons)
     }
 
@@ -61,6 +118,10 @@ export async function GET(request: NextRequest) {
     if (ownerId) {
       salons = salons.filter(s => s.ownerId === ownerId)
     }
+    
+    // Calculate ratings with reviews for all salons
+    salons = await Promise.all(salons.map(salon => calculateSalonRatingWithReviews(salon)))
+    
     return NextResponse.json(salons)
   } catch (error) {
     // Silently fallback to local store - backend is optional
@@ -70,6 +131,8 @@ export async function GET(request: NextRequest) {
     if (ownerId) {
       salons = salons.filter(s => s.ownerId === ownerId)
     }
+    // Calculate ratings with reviews
+    salons = await Promise.all(salons.map(salon => calculateSalonRatingWithReviews(salon)))
     return NextResponse.json(salons)
   }
 }
