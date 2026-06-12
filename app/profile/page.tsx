@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Navigation from '@/components/navigation'
+import HairstylePreview from '@/components/hairstyle-preview'
 import { Button } from '@/components/ui/button'
 
 interface UserProfile {
@@ -18,6 +19,7 @@ export default function ProfilePage() {
   const router = useRouter()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [showHairstylePreview, setShowHairstylePreview] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -189,12 +191,26 @@ export default function ProfilePage() {
             <Button onClick={() => router.push('/search')} className="bg-indigo-600 hover:bg-indigo-700">
               Browse Salons
             </Button>
+            <Button 
+              onClick={() => setShowHairstylePreview(!showHairstylePreview)}
+              variant="outline" 
+              className="border-slate-700 text-white hover:bg-slate-800"
+            >
+              {showHairstylePreview ? 'Hide' : 'Try'} AI Hairstyle Preview
+            </Button>
             {profile.userType === 'salon_owner' && (
               <Button onClick={() => router.push('/create-salon')} variant="outline" className="border-slate-700 text-white hover:bg-slate-800">
                 Create Salon Profile
               </Button>
             )}
           </div>
+
+          {/* Hairstyle Preview Section */}
+          {showHairstylePreview && (
+            <div className="mt-10 pt-10 border-t border-slate-700">
+              <HairstylePreview onClose={() => setShowHairstylePreview(false)} />
+            </div>
+          )}
         </div>
       </main>
 
