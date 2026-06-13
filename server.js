@@ -9,12 +9,25 @@ console.log('[Server] Env loaded. FIREBASE_PROJECT_ID:', process.env.FIREBASE_PR
 
 const PORT = process.env.PORT || 5000;
 
+// Initialize database schema
+let db;
+const { initializeCollections } = require('./lib/db-schema');
+
 // Initialize Firebase
 let admin;
 try {
   const { initializeFirebase } = require('./lib/firebase-init');
   admin = initializeFirebase();
   console.log('[Server] Firebase initialized');
+  
+  // Initialize database collections
+  setTimeout(async () => {
+    try {
+      await initializeCollections();
+    } catch (error) {
+      console.warn('[Server] Could not initialize collections:', error.message);
+    }
+  }, 1000);
 } catch (error) {
   console.error('[Server] Firebase initialization error:', error.message);
   console.error('[Server] Stack:', error.stack);

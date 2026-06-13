@@ -66,56 +66,8 @@ router.post('/', async (req, res) => {
       booking: bookingData,
     });
   } catch (error) {
-    console.error('Create booking error (trying local fallback):', error.message);
-    
-    // Fallback to local storage
-    try {
-      const {
-        userId,
-        salonId,
-        serviceId,
-        services,
-        customerName,
-        customerEmail,
-        customerPhone,
-        appointmentDate,
-        appointmentTime,
-        notes,
-      } = req.body;
-
-      if (!userId || !salonId || !appointmentDate || !appointmentTime) {
-        return res.status(400).json({ error: 'Missing required fields' });
-      }
-
-      const bookingId = uuidv4();
-      const selectedServices = Array.isArray(services)
-        ? [...new Set(services.map(service => String(service).trim()).filter(Boolean))]
-        : [];
-      
-      const newBooking = await addLocalBooking({
-        bookingId,
-        userId,
-        salonId,
-        serviceId: serviceId || selectedServices[0] || null,
-        services: selectedServices,
-        customerName: customerName || '',
-        customerEmail: customerEmail || '',
-        customerPhone: customerPhone || '',
-        appointmentDate,
-        appointmentTime,
-        notes: notes || '',
-        status: 'confirmed',
-      });
-
-      res.status(201).json({
-        message: 'Booking created successfully (local)',
-        bookingId: newBooking.bookingId,
-        booking: newBooking,
-      });
-    } catch (fallbackError) {
-      console.error('Local fallback error:', fallbackError);
-      res.status(500).json({ error: 'Failed to create booking' });
-    }
+    console.error('Create booking error:', error.message);
+    res.status(500).json({ error: 'Failed to create booking' });
   }
 });
 
@@ -134,26 +86,21 @@ router.get('/user/:userId', async (req, res) => {
     for (const doc of bookingsSnapshot.docs) {
       const bookingData = doc.data();
       const salonDoc = await db.collection('salons').doc(bookingData.salonId).get();
+      const salonData = salonDoc.data() || {};
       bookings.push({
         id: doc.id,
         ...bookingData,
-        salon: salonDoc.data(),
+        salon: {
+          ...salonData,
+          services: Array.isArray(salonData.services) ? salonData.services : [],
+        },
       });
     }
 
     res.json(bookings);
   } catch (error) {
-    console.error('Get user bookings error (trying local fallback):', error.message);
-    
-    // Fallback to local storage
-    try {
-      const { userId } = req.params;
-      const bookings = await getLocalUserBookings(userId);
-      res.json(bookings);
-    } catch (fallbackError) {
-      console.error('Local fallback error:', fallbackError);
-      res.status(500).json({ error: 'Failed to fetch bookings' });
-    }
+    console.error('Get user bookings error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch bookings' });
   }
 });
 
@@ -181,17 +128,8 @@ router.get('/salon/:salonId', async (req, res) => {
 
     res.json(bookings);
   } catch (error) {
-    console.error('Get salon bookings error (trying local fallback):', error.message);
-    
-    // Fallback to local storage
-    try {
-      const { salonId } = req.params;
-      const bookings = await getLocalSalonBookings(salonId);
-      res.json(bookings);
-    } catch (fallbackError) {
-      console.error('Local fallback error:', fallbackError);
-      res.status(500).json({ error: 'Failed to fetch bookings' });
-    }
+    console.error('Get salon bookings error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch bookings' });
   }
 });
 
@@ -231,23 +169,8 @@ router.put('/:bookingId', async (req, res) => {
 
     res.json({ message: 'Booking updated successfully' });
   } catch (error) {
-    console.error('Update booking error (trying local fallback):', error.message);
-    
-    // Fallback to local storage
-    try {
-      const { bookingId } = req.params;
-      const { status } = req.body;
-
-      if (!['pending', 'confirmed', 'cancelled', 'completed'].includes(status)) {
-        return res.status(400).json({ error: 'Invalid status' });
-      }
-
-      await updateLocalBooking(bookingId, { status });
-      res.json({ message: 'Booking updated successfully (local)' });
-    } catch (fallbackError) {
-      console.error('Local fallback error:', fallbackError);
-      res.status(500).json({ error: 'Failed to update booking' });
-    }
+    console.error('Update booking error:', error.message);
+    res.status(500).json({ error: 'Failed to update booking' });
   }
 });
 
@@ -264,17 +187,8 @@ router.post('/:bookingId/cancel', async (req, res) => {
 
     res.json({ message: 'Booking cancelled successfully' });
   } catch (error) {
-    console.error('Cancel booking error (trying local fallback):', error.message);
-    
-    // Fallback to local storage
-    try {
-      const { bookingId } = req.params;
-      await cancelLocalBooking(bookingId);
-      res.json({ message: 'Booking cancelled successfully (local)' });
-    } catch (fallbackError) {
-      console.error('Local fallback error:', fallbackError);
-      res.status(500).json({ error: 'Failed to cancel booking' });
-    }
+    console.error('Cancel booking error:', error.message);
+    res.status(500).json({ error: 'Failed to cancel booking' });
   }
 });
 

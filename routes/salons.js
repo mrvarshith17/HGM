@@ -32,10 +32,11 @@ router.get('/', async (req, res) => {
     const salons = [];
     snapshot.forEach(doc => {
       const salonData = doc.data();
-      // Ensure rating and reviewCount always exist
+      // Ensure services, rating and reviewCount always exist
       salons.push({
         id: doc.id,
         ...salonData,
+        services: Array.isArray(salonData.services) ? salonData.services : [],
         rating: salonData.rating || 0,
         reviewCount: salonData.reviewCount || 0,
       });
@@ -43,28 +44,8 @@ router.get('/', async (req, res) => {
 
     res.json(salons);
   } catch (error) {
-    console.error('Get salons error (trying local fallback):', error.message);
-    
-    // Fallback to local storage
-    try {
-      const allSalons = await readLocalSalons();
-      const { ownerId } = req.query;
-      const filtered = ownerId
-        ? allSalons.filter(s => s.ownerId === ownerId)
-        : allSalons;
-      
-      // Ensure rating and reviewCount always exist
-      const withDefaults = filtered.map(s => ({
-        ...s,
-        rating: s.rating || 0,
-        reviewCount: s.reviewCount || 0,
-      }));
-      
-      res.json(withDefaults);
-    } catch (fallbackError) {
-      console.error('Local fallback error:', fallbackError);
-      res.status(500).json({ error: 'Failed to fetch salons' });
-    }
+    console.error('Get salons error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch salons' });
   }
 });
 
@@ -103,42 +84,8 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({ id: salonId, message: 'Salon created successfully' });
   } catch (error) {
-    console.error('Create salon error (trying local fallback):', error.message);
-    
-    // Fallback to local storage
-    try {
-      const { ownerId, name, address, phone, description, email, city, services, operatingHours, profilePicture } = req.body;
-      
-      if (!ownerId || !name || !address || !phone || !description) {
-        return res.status(400).json({ error: 'Missing required fields' });
-      }
-
-      const salonId = uuidv4();
-      const salonServices = Array.isArray(services)
-        ? [...new Set(services.map(service => String(service).trim()).filter(Boolean))]
-        : [];
-
-      const newSalon = await addLocalSalon({
-        id: salonId,
-        ownerId,
-        name,
-        address,
-        phone,
-        description,
-        email: email || '',
-        city: city || '',
-        rating: 0,
-        reviewCount: 0,
-        services: salonServices,
-        profilePicture: profilePicture || '',
-        operatingHours: operatingHours || {},
-      });
-
-      res.status(201).json({ id: newSalon.id, message: 'Salon created successfully (local)' });
-    } catch (fallbackError) {
-      console.error('Local fallback error:', fallbackError);
-      res.status(500).json({ error: 'Failed to create salon' });
-    }
+    console.error('Create salon error:', error.message);
+    res.status(500).json({ error: 'Failed to create salon' });
   }
 });
 
@@ -154,24 +101,17 @@ router.get('/:salonId', async (req, res) => {
       return res.status(404).json({ error: 'Salon not found' });
     }
 
-    res.json({ id: salonDoc.id, ...salonDoc.data() });
+    const salonData = salonDoc.data();
+    res.json({ 
+      id: salonDoc.id, 
+      ...salonData,
+      services: Array.isArray(salonData.services) ? salonData.services : [],
+      rating: salonData.rating || 0,
+      reviewCount: salonData.reviewCount || 0,
+    });
   } catch (error) {
-    console.error('Get salon error (trying local fallback):', error.message);
-    
-    // Fallback to local storage
-    try {
-      const { salonId } = req.params;
-      const salon = await getLocalSalon(salonId);
-      
-      if (!salon) {
-        return res.status(404).json({ error: 'Salon not found' });
-      }
-      
-      res.json(salon);
-    } catch (fallbackError) {
-      console.error('Local fallback error:', fallbackError);
-      res.status(500).json({ error: 'Failed to fetch salon' });
-    }
+    console.error('Get salon error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch salon' });
   }
 });
 

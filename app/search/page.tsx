@@ -181,13 +181,13 @@ export default function SearchPage() {
                       <div className="mb-4">
                         <p className="text-xs text-slate-500 mb-2">Services</p>
                         <div className="flex flex-wrap gap-2">
-                          {salon.services.slice(0, 3).map((service, idx) => (
+                          {(salon.services || []).slice(0, 3).map((service, idx) => (
                             <span key={idx} className="inline-block px-2 py-1 bg-indigo-600/20 text-indigo-300 rounded text-xs">
                               {service}
                             </span>
                           ))}
-                          {salon.services.length > 3 && (
-                            <span className="text-xs text-slate-500">+{salon.services.length - 3} more</span>
+                          {(salon.services || []).length > 3 && (
+                            <span className="text-xs text-slate-500">+{(salon.services || []).length - 3} more</span>
                           )}
                         </div>
                       </div>

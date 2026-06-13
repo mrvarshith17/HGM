@@ -25,9 +25,14 @@ export default function Navigation() {
                 Salons
               </Link>
               {user.userType === 'customer' && (
-                <Link href="/dashboard/user" className="text-sm text-slate-300 hover:text-white transition">
-                  My Bookings
-                </Link>
+                <>
+                  <Link href="/hairstyle" className="text-sm text-slate-300 hover:text-white transition flex items-center gap-1">
+                    ✨ Hairstyles
+                  </Link>
+                  <Link href="/dashboard/user" className="text-sm text-slate-300 hover:text-white transition">
+                    My Bookings
+                  </Link>
+                </>
               )}
               {user.userType === 'salon_owner' && (
                 <>

@@ -250,11 +250,11 @@ export default function SalonDetailPage() {
             <div className="lg:col-span-2 space-y-8">
               <div className="rounded-lg border border-slate-800 bg-slate-900/50 backdrop-blur p-8">
                 <h2 className="text-2xl font-bold text-white mb-6">Services Offered</h2>
-                {salon.services.length === 0 ? (
+                {(salon.services || []).length === 0 ? (
                   <p className="text-slate-400">No services listed yet.</p>
                 ) : (
                   <div className="grid gap-3">
-                    {salon.services.map((service) => (
+                    {(salon.services || []).map((service) => (
                       <div key={service} className="flex items-center gap-3 p-4 rounded-lg bg-indigo-600/10 border border-indigo-600/20">
                         <Scissors className="h-5 w-5 text-indigo-300" />
                         <span className="text-white">{service}</span>
@@ -337,11 +337,11 @@ export default function SalonDetailPage() {
                   />
                 </div>
 
-                {salon.services.length > 0 && (
+                {(salon.services || []).length > 0 && (
                   <div>
                     <p className="block text-sm font-medium text-white mb-2">Services *</p>
                     <div className="grid gap-2">
-                      {salon.services.map((service) => {
+                      {(salon.services || []).map((service) => {
                         const selected = selectedServices.includes(service)
 
                         return (

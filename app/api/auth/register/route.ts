@@ -89,9 +89,12 @@ export async function POST(request: NextRequest) {
       ...(passwordHash && passwordSalt ? { passwordHash, passwordSalt } : {}),
     }
 
+    // Store in database (primary storage)
+    await adminDb.collection('users').doc(uid).set(user)
+
+    // Also store in local auth store for local fallback if configured
     if (authProvider === 'local' && passwordHash && passwordSalt) {
       const now = new Date().toISOString()
-
       await createLocalAuthUser({
         uid,
         email: normalizedEmail,
@@ -102,9 +105,7 @@ export async function POST(request: NextRequest) {
         passwordSalt,
         createdAt: now,
         updatedAt: now,
-      })
-    } else {
-      await adminDb.collection('users').doc(uid).set(user)
+      }).catch(err => console.warn('Could not store in local auth:', err.message))
     }
 
     return NextResponse.json({
