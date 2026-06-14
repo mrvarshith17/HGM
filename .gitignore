@@ -1,16 +1,26 @@
-# v0 sandbox internal files
-__v0_runtime_loader.js
-__v0_devtools.tsx
-__v0_jsx-dev-runtime.ts
-.snowflake/
-.v0-trash/
-.vercel/
-.local-data/
+# --- SECURITY & SECRETS (Do not push!) ---
+firebase-key.json
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Environment variables
-.env*.local
-
-# Common ignores
-node_modules
+# --- DEPENDENCIES & BUILD OUTPUT ---
+node_modules/
+.pnpm-store/
 .next/
+out/
+dist/
+build/
+
+# --- IDE, SYSTEM & SANDBOX ---
 .DS_Store
+*.log
+.vscode/
+.idea/
+*.tsbuildinfo
+.vercel/
+.v0-trash/
+.local-data/
+__v0_*
