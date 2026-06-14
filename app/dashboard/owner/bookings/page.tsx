@@ -6,6 +6,7 @@ import Navigation from '@/components/navigation'
 import { Button } from '@/components/ui/button'
 import { Calendar, CheckCircle, Clock, Phone, Mail, ChevronDown, Scissors } from 'lucide-react'
 import { formatTimeWith12Hour, formatAppointmentDate } from '@/lib/utils'
+import SentimentDashboard from '@/components/SentimentDashboard' // 🤖 AI Dashboard Import
 
 interface Booking {
   id: string
@@ -189,13 +190,24 @@ export default function OwnerBookingsPage() {
       <section className="px-6 py-12">
         <div className="mx-auto max-w-6xl">
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">My Bookings</h1>
-            <p className="text-slate-400">Manage all customer appointments across your salons</p>
+            <h1 className="text-4xl font-bold text-white mb-2">My Bookings & AI Analytics</h1>
+            <p className="text-slate-400">Manage all customer appointments and view AI sentiment insights</p>
           </div>
 
           {message && (
             <div className="mb-6 p-4 rounded-lg bg-slate-800 border border-slate-700 text-slate-300">
               {message}
+            </div>
+          )}
+
+          {/* 🤖 AI SENTIMENT DASHBOARD INJECTED HERE */}
+          {salons.size > 0 && (
+            <div className="mb-12 space-y-8">
+              {Array.from(salons.values()).map(salon => (
+                <div key={salon.id}>
+                  <SentimentDashboard salonId={salon.id} />
+                </div>
+              ))}
             </div>
           )}
 
