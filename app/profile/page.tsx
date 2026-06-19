@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Navigation from '@/components/navigation'
 import HairstylePreview from '@/components/hairstyle-preview'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/hooks/useAuth'
 
 interface UserProfile {
   uid: string
@@ -17,26 +18,29 @@ interface UserProfile {
 
 export default function ProfilePage() {
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [showHairstylePreview, setShowHairstylePreview] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    const stored = localStorage.getItem('userData')
-    if (!stored) {
+    if (authLoading) return
+
+    if (!user) {
       router.push('/auth/login')
       return
     }
 
-    try {
-      const userData = JSON.parse(stored) as UserProfile
-      setProfile(userData)
-    } catch (error) {
-      localStorage.removeItem('userData')
-      router.push('/auth/login')
-    }
-  }, [router])
+    setProfile({
+      uid: user.uid,
+      email: user.email,
+      name: user.name,
+      phone: user.phone,
+      userType: user.userType,
+      profilePicture: user.profilePicture,
+    })
+  }, [authLoading, user, router])
 
   const getInitials = (name: string) => {
     return name
@@ -73,11 +77,6 @@ export default function ProfilePage() {
         ...profile,
         profilePicture: data.profilePicture,
       })
-
-      // Update localStorage
-      const userData = JSON.parse(localStorage.getItem('userData') || '{}')
-      userData.profilePicture = data.profilePicture
-      localStorage.setItem('userData', JSON.stringify(userData))
     } catch (error) {
       console.error('Upload error:', error)
       alert('Failed to upload profile picture')
@@ -103,18 +102,13 @@ export default function ProfilePage() {
         ...profile,
         profilePicture: undefined,
       })
-
-      // Update localStorage
-      const userData = JSON.parse(localStorage.getItem('userData') || '{}')
-      delete userData.profilePicture
-      localStorage.setItem('userData', JSON.stringify(userData))
     } catch (error) {
       console.error('Delete error:', error)
       alert('Failed to delete profile picture')
     }
   }
 
-  if (!profile) {
+  if (!profile || authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900">
         <Navigation />

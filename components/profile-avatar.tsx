@@ -42,13 +42,6 @@ export default function ProfileAvatar({ user }: ProfileAvatarProps) {
         throw new Error('Upload failed')
       }
 
-      const data = await response.json()
-
-      // Update user data in localStorage
-      const userData = JSON.parse(localStorage.getItem('userData') || '{}')
-      userData.profilePicture = data.profilePicture
-      localStorage.setItem('userData', JSON.stringify(userData))
-
       // Reload page to show new picture
       window.location.reload()
     } catch (error) {
@@ -70,11 +63,6 @@ export default function ProfileAvatar({ user }: ProfileAvatarProps) {
       if (!response.ok) {
         throw new Error('Delete failed')
       }
-
-      // Update user data in localStorage
-      const userData = JSON.parse(localStorage.getItem('userData') || '{}')
-      delete userData.profilePicture
-      localStorage.setItem('userData', JSON.stringify(userData))
 
       // Reload page to show initials again
       window.location.reload()

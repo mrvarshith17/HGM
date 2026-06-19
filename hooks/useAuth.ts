@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { createSession, getCurrentUser, deleteSession } from '@/lib/db-session-service'
 
 export interface User {
   uid: string
@@ -8,6 +9,7 @@ export interface User {
   phone: string
   userType: 'customer' | 'salon_owner'
   profilePicture?: string
+  salonId?: string
 }
 
 export function useAuth() {
@@ -17,19 +19,24 @@ export function useAuth() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem('authToken')
-      const userData = localStorage.getItem('userData')
-
-      if (token && userData) {
-        try {
-          setUser(JSON.parse(userData))
-        } catch (error) {
-          console.error('Failed to parse user data:', error)
-          localStorage.removeItem('authToken')
-          localStorage.removeItem('userData')
+      try {
+        const session = await getCurrentUser()
+        if (session) {
+          setUser({
+            uid: session.userId,
+            email: session.email,
+            name: session.name,
+            phone: session.phone,
+            userType: session.userType,
+            profilePicture: session.profilePicture,
+            salonId: session.salonId,
+          })
         }
+      } catch (error) {
+        console.error('Failed to get current user:', error)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
 
     checkAuth()
@@ -55,22 +62,20 @@ export function useAuth() {
       }
 
       const result = await response.json()
-      // In production, get actual token from Firebase
-      localStorage.setItem('authToken', result.uid)
-      localStorage.setItem('userId', result.uid) // Store userId for chat pages
-      localStorage.setItem('userType', data.userType)
-      localStorage.setItem('userEmail', data.email)
-      localStorage.setItem('userData', JSON.stringify({
-        uid: result.uid,
+
+      // Create session in database
+      const session = await createSession({
+        userId: result.uid,
         email: result.email,
         name: data.name,
         phone: data.phone,
         userType: data.userType,
-      }))
+        profilePicture: result.profilePicture,
+      })
 
       setUser({
-        uid: result.uid,
-        email: result.email,
+        uid: session.userId,
+        email: session.email,
         name: data.name,
         phone: data.phone,
         userType: data.userType,
@@ -97,69 +102,45 @@ export function useAuth() {
       }
 
       const result = await response.json()
-      localStorage.setItem('authToken', result.uid)
-      localStorage.setItem('userId', result.uid) // Store userId for chat pages
-      localStorage.setItem('userType', result.userType || 'customer')
-      localStorage.setItem('userEmail', result.email)
-      localStorage.setItem('userData', JSON.stringify(result))
 
-      setUser(result)
-      router.push(result.userType === 'customer' ? '/search' : '/dashboard/salon')
+      // Create session in database
+      const session = await createSession({
+        userId: result.uid,
+        email: result.email,
+        name: result.name,
+        phone: result.phone,
+        userType: result.userType,
+        salonId: result.salonId,
+        profilePicture: result.profilePicture,
+      })
+
+      setUser({
+        uid: session.userId,
+        email: session.email,
+        name: session.name,
+        phone: session.phone,
+        userType: session.userType as 'customer' | 'salon_owner',
+        salonId: session.salonId,
+      })
+
+      router.push(session.userType === 'customer' ? '/search' : '/dashboard/owner')
     } catch (error) {
       console.error('Login error:', error)
       throw error
     }
   }, [router])
 
-  const continueWithGoogle = useCallback(async (
-    credential: string,
-    options: {
-      mode: 'login' | 'signup'
-      name?: string
-      phone?: string
-      userType?: 'customer' | 'salon_owner'
-    }
-  ) => {
-    try {
-      const response = await fetch('/api/auth/google', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential, ...options }),
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Google authentication failed')
-      }
-
-      const result = await response.json()
-      localStorage.setItem('authToken', result.uid)
-      localStorage.setItem('userId', result.uid) // Store userId for chat pages
-      localStorage.setItem('userType', result.userType || 'customer')
-      localStorage.setItem('userEmail', result.email)
-      localStorage.setItem('userData', JSON.stringify(result))
-      setUser(result)
-      router.push(result.userType === 'customer' ? '/search' : '/dashboard/salon')
-    } catch (error) {
-      console.error('Google auth error:', error)
-      throw error
-    }
-  }, [router])
-
   const logout = useCallback(async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' })
-    } catch (error) {
-      console.error('Logout error:', error)
-    } finally {
-      localStorage.removeItem('authToken')
-      localStorage.removeItem('userId')
-      localStorage.removeItem('salonId')
-      localStorage.removeItem('userData')
+      if (user) {
+        await deleteSession(user.uid)
+      }
       setUser(null)
       router.push('/')
+    } catch (error) {
+      console.error('Logout error:', error)
     }
-  }, [router])
+  }, [user, router])
 
-  return { user, loading, register, login, continueWithGoogle, logout }
+  return { user, loading, register, login, logout }
 }

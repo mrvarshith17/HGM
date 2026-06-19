@@ -4,17 +4,20 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Navigation from '@/components/navigation'
 import { BookOpen, Users, MessageCircle } from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function OwnerDashboard() {
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
 
   useEffect(() => {
-    const userType = localStorage.getItem('userType')
-    if (userType !== 'salon_owner') {
+    if (authLoading) return
+
+    if (!user || user.userType !== 'salon_owner') {
       router.push('/auth/login')
       return
     }
-  }, [router])
+  }, [authLoading, user, router])
 
   const dashboardOptions = [
     {

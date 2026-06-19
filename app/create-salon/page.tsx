@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Navigation from '@/components/navigation'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/hooks/useAuth'
 
 function parseServices(value: string) {
   return Array.from(new Set(
@@ -16,6 +17,7 @@ function parseServices(value: string) {
 
 export default function CreateSalonPage() {
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
   const [phone, setPhone] = useState('')
@@ -27,19 +29,17 @@ export default function CreateSalonPage() {
   const services = parseServices(servicesInput)
 
   useEffect(() => {
-    const authToken = localStorage.getItem('authToken')
-    const userData = localStorage.getItem('userData')
+    if (authLoading) return
 
-    if (!authToken || !userData) {
+    if (!user) {
       router.push('/auth/login')
       return
     }
 
-    const user = JSON.parse(userData)
     if (user.userType !== 'salon_owner') {
       router.push('/dashboard/user')
     }
-  }, [router])
+  }, [authLoading, user, router])
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -48,12 +48,9 @@ export default function CreateSalonPage() {
     setLoading(true)
 
     try {
-      const storedUser = localStorage.getItem('userData')
-      if (!storedUser) {
+      if (!user) {
         throw new Error('User session expired. Please sign in again.')
       }
-
-      const user = JSON.parse(storedUser)
 
       if (services.length === 0) {
         throw new Error('Please add at least one service your salon provides.')

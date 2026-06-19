@@ -8,6 +8,7 @@ import { Calendar, CheckCircle, Clock, Phone, Mail, ChevronDown, Scissors, Messa
 import { formatTimeWith12Hour, formatAppointmentDate } from '@/lib/utils'
 import SentimentDashboard from '@/components/SentimentDashboard' // 🤖 AI Dashboard Import
 import { createChatRoom } from '@/lib/db-chat-service'
+import { useAuth } from '@/hooks/useAuth'
 
 interface Booking {
   id: string
@@ -59,6 +60,7 @@ function BookingServices({ services }: { services?: string[] }) {
 
 export default function OwnerBookingsPage() {
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [salons, setSalons] = useState<Map<string, Salon>>(new Map())
   const [loading, setLoading] = useState(true)
@@ -114,13 +116,15 @@ export default function OwnerBookingsPage() {
   }, [])
 
   useEffect(() => {
-    const userId = localStorage.getItem('authToken')
-    if (!userId) {
+    if (authLoading) return
+
+    if (!user) {
       router.push('/auth/login')
       return
     }
-    fetchBookings(userId)
-  }, [fetchBookings, router])
+
+    fetchBookings(user.uid)
+  }, [authLoading, user, fetchBookings, router])
 
   const handleBookingStatus = async (bookingId: string, status: Booking['status']) => {
     try {
@@ -149,12 +153,6 @@ export default function OwnerBookingsPage() {
 
   const handleStartChat = async (booking: Booking) => {
     try {
-      const salonId = localStorage.getItem('salonId')
-      if (!salonId) {
-        alert('Salon not found. Please refresh the page.')
-        return
-      }
-
       // Create or get existing chat room
       const chatRoom = await createChatRoom({
         bookingId: booking.id,

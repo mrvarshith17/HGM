@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSalonChatRooms, getChatRoom } from '@/lib/db-chat-service'
 import { ChatWidget } from '@/components/chat-widget'
+import { useAuth } from '@/hooks/useAuth'
 import type { ChatRoom } from '@/lib/db-chat-service'
 import { MessageCircle } from 'lucide-react'
 
@@ -14,34 +15,22 @@ interface Salon {
 
 export default function SalonChatPage() {
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([])
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [salons, setSalons] = useState<Salon[]>([])
-  const [ownerId, setOwnerId] = useState('')
-
-  // Get owner ID from auth
-  useEffect(() => {
-    let storedOwnerId = localStorage.getItem('authToken')
-    
-    if (!storedOwnerId) {
-      router.push('/auth/login')
-      return
-    }
-
-    setOwnerId(storedOwnerId)
-  }, [router])
 
   // Fetch owner's salons
   useEffect(() => {
     const fetchSalons = async () => {
-      if (!ownerId) return
+      if (!user) return
 
       try {
         setLoading(true)
-        console.log('[Chat Page] Fetching salons for ownerId:', ownerId)
-        const response = await fetch(`/api/salons?ownerId=${encodeURIComponent(ownerId)}`)
+        console.log('[Chat Page] Fetching salons for ownerId:', user.uid)
+        const response = await fetch(`/api/salons?ownerId=${encodeURIComponent(user.uid)}`)
         
         if (!response.ok) {
           console.error('[Chat Page] Failed to fetch salons, status:', response.status)
@@ -71,11 +60,6 @@ export default function SalonChatPage() {
         }
 
         setSalons(validSalons)
-        
-        // Store the first salon ID for convenience
-        if (validSalons[0]) {
-          localStorage.setItem('salonId', validSalons[0].id)
-        }
 
         console.log('[Chat Page] Owner salons loaded:', validSalons.map(s => ({ id: s.id, name: s.name })))
         setError('')
@@ -86,8 +70,14 @@ export default function SalonChatPage() {
       }
     }
 
+    if (authLoading) return
+    if (!user) {
+      router.push('/auth/login')
+      return
+    }
+
     fetchSalons()
-  }, [ownerId])
+  }, [authLoading, user, router])
 
   // Load chat rooms for all owner's salons
   useEffect(() => {

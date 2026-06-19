@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSalons } from '@/lib/db-salon-service'
 import { getSalonStaff, addStaffMember, updateStaffMember, deleteStaffMember } from '@/lib/db-staff-service-local'
+import { useAuth } from '@/hooks/useAuth'
 import type { Staff } from '@/lib/db-staff-service-local'
 import type { Salon } from '@/lib/db-salon-service'
 import { Trash2, Plus, Edit2, X } from 'lucide-react'
 
 export default function StaffManagementPage() {
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const [salons, setSalons] = useState<Salon[]>([])
   const [selectedSalonId, setSelectedSalonId] = useState('')
   const [selectedSalon, setSelectedSalon] = useState<Salon | null>(null)
@@ -34,53 +36,35 @@ export default function StaffManagementPage() {
     const loadSalons = async () => {
       try {
         setLoading(true)
-        const authToken = localStorage.getItem('authToken')
-        const userType = localStorage.getItem('userType')
-        const salonId = localStorage.getItem('salonId')
 
-        console.log('Loading salons - authToken:', !!authToken, 'userType:', userType, 'salonId:', salonId)
+        if (authLoading) return
 
         // Check authentication
-        if (!authToken || userType !== 'salon_owner') {
+        if (!user || user.userType !== 'salon_owner') {
           console.log('Not authenticated as salon_owner, redirecting to login')
           router.push('/auth/login')
           return
         }
 
-        // If user has a specific salon, use that
-        if (salonId) {
-          console.log('Using stored salon ID:', salonId)
-          try {
-            const response = await getSalons()
-            console.log('All salons loaded:', response)
-            const salon = response.find((s: Salon) => s.id === salonId)
-            if (salon) {
-              console.log('Found salon:', salon)
-              setSalons([salon])
-              setSelectedSalonId(salon.id)
-              setSelectedSalon(salon)
-            } else {
-              console.error('Salon not found for ID:', salonId)
-              setError('Salon not found')
-            }
-          } catch (err) {
-            console.error('Failed to load salon:', err)
-            setError('Failed to load salon')
-          }
+        console.log('Loading salons for owner:', user.uid)
+
+        // Load salons for this owner
+        const response = await fetch(`/api/salons?ownerId=${encodeURIComponent(user.uid)}`)
+        if (!response.ok) {
+          throw new Error('Failed to load salons')
+        }
+
+        const loadedSalons = await response.json()
+        console.log('Salons loaded:', loadedSalons)
+        setSalons(loadedSalons || [])
+        
+        if (loadedSalons && loadedSalons.length > 0) {
+          console.log('Setting first salon as selected:', loadedSalons[0])
+          setSelectedSalonId(loadedSalons[0].id)
+          setSelectedSalon(loadedSalons[0])
         } else {
-          // Fallback: load all salons (shouldn't happen if properly logged in)
-          console.log('No stored salon ID, loading all salons')
-          const response = await getSalons()
-          console.log('All salons loaded:', response)
-          setSalons(response || [])
-          if (response && response.length > 0) {
-            console.log('Setting first salon as selected:', response[0])
-            setSelectedSalonId(response[0].id)
-            setSelectedSalon(response[0])
-          } else {
-            console.error('No salons found for user')
-            setError('No salons found. Create a salon first.')
-          }
+          console.error('No salons found for user')
+          setError('No salons found. Create a salon first.')
         }
         setError('')
       } catch (err) {
@@ -92,7 +76,7 @@ export default function StaffManagementPage() {
     }
 
     loadSalons()
-  }, [router])
+  }, [authLoading, user, router])
 
   // Load staff for selected salon
   useEffect(() => {

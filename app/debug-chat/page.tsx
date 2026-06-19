@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
 
 interface DebugData {
   stats?: {
@@ -18,7 +19,7 @@ interface DebugData {
 
 export default function DebugChatPage() {
   const router = useRouter()
-  const [userId, setUserId] = useState('')
+  const { user, loading: authLoading } = useAuth()
   const [salonId, setSalonId] = useState('')
   const [userDebugData, setUserDebugData] = useState<DebugData | null>(null)
   const [salonDebugData, setSalonDebugData] = useState<DebugData | null>(null)
@@ -28,8 +29,8 @@ export default function DebugChatPage() {
     try {
       setLoading(true)
       
-      if (userId) {
-        const response = await fetch(`/api/chat/debug/rooms?userId=${encodeURIComponent(userId)}`)
+      if (user) {
+        const response = await fetch(`/api/chat/debug/rooms?userId=${encodeURIComponent(user.uid)}`)
         const data = await response.json()
         setUserDebugData(data)
       }
@@ -47,11 +48,8 @@ export default function DebugChatPage() {
   }
 
   useEffect(() => {
-    const storedUserId = localStorage.getItem('userId') || localStorage.getItem('authToken')
-    const storedSalonId = localStorage.getItem('salonId')
-    
-    if (storedUserId) setUserId(storedUserId)
-    if (storedSalonId) setSalonId(storedSalonId)
+    // Try to load salonId from query or user context
+    // This is a debug page, so we don't strictly need it
   }, [])
 
   return (
@@ -62,7 +60,7 @@ export default function DebugChatPage() {
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-4">Your IDs</h2>
           <div className="space-y-2 text-sm font-mono">
-            <p><span className="text-gray-500">User ID:</span> {userId || 'Not set'}</p>
+            <p><span className="text-gray-500">User ID:</span> {user?.uid || 'Not set'}</p>
             <p><span className="text-gray-500">Salon ID:</span> {salonId || 'Not set'}</p>
           </div>
         </div>
@@ -70,7 +68,7 @@ export default function DebugChatPage() {
         <div className="bg-white p-6 rounded-lg shadow">
           <button
             onClick={fetchDebugData}
-            disabled={loading}
+            disabled={loading || !user}
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
           >
             {loading ? 'Loading...' : 'Refresh Debug Data'}

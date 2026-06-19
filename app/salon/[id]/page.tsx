@@ -6,6 +6,7 @@ import Navigation from '@/components/navigation'
 import { Button } from '@/components/ui/button'
 import { Check, MapPin, Phone, Mail, Scissors, Star, Calendar, Award } from 'lucide-react'
 import { getStarStates } from '@/lib/rating-utils'
+import { useAuth } from '@/hooks/useAuth'
 
 interface Salon {
   id: string
@@ -50,6 +51,7 @@ interface Review {
 export default function SalonDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const salonId = params.id as string
 
   const [salon, setSalon] = useState<Salon | null>(null)
@@ -122,9 +124,8 @@ export default function SalonDetailPage() {
 
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault()
-    const userId = localStorage.getItem('authToken')
 
-    if (!userId) {
+    if (!user) {
       router.push('/auth/login')
       return
     }

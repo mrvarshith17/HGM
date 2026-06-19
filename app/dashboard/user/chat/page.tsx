@@ -5,61 +5,38 @@ import { useRouter } from 'next/navigation'
 import { getUserChatRooms } from '@/lib/db-chat-service'
 import { getSalon } from '@/lib/db-salon-service'
 import { ChatWidget } from '@/components/chat-widget'
+import { useAuth } from '@/hooks/useAuth'
 import type { ChatRoom } from '@/lib/db-chat-service'
 import type { Salon } from '@/lib/db-salon-service'
 import { MessageCircle } from 'lucide-react'
 
 export default function UserChatPage() {
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const [chatRooms, setChatRooms] = useState<(ChatRoom & { salonName?: string })[]>([])
   const [selectedRoom, setSelectedRoom] = useState<(ChatRoom & { salonName?: string }) | null>(
     null
   )
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [userId, setUserId] = useState('')
 
   useEffect(() => {
-    // Get user ID from local storage or auth context
-    let storedUserId = localStorage.getItem('userId')
+    if (authLoading) return
     
-    // If userId not found, try to extract from userData
-    if (!storedUserId) {
-      const userData = localStorage.getItem('userData')
-      const authToken = localStorage.getItem('authToken')
-      
-      if (userData) {
-        try {
-          const parsed = JSON.parse(userData)
-          storedUserId = parsed.uid || authToken
-          if (storedUserId) {
-            localStorage.setItem('userId', storedUserId)
-          }
-        } catch (error) {
-          console.error('Failed to parse userData:', error)
-        }
-      } else if (authToken) {
-        storedUserId = authToken
-        localStorage.setItem('userId', storedUserId)
-      }
-    }
-    
-    if (!storedUserId) {
+    if (!user) {
       router.push('/auth/login')
       return
     }
-
-    setUserId(storedUserId)
-  }, [router])
+  }, [authLoading, user, router])
 
   // Load chat rooms for user
   useEffect(() => {
     const loadChatRooms = async () => {
-      if (!userId) return
+      if (!user) return
 
       try {
         setLoading(true)
-        const response = await getUserChatRooms(userId)
+        const response = await getUserChatRooms(user.uid)
         const roomsWithNames = await Promise.all(
           (Array.isArray(response) ? response : response.data || []).map(async (room: ChatRoom) => {
             try {
@@ -91,9 +68,9 @@ export default function UserChatPage() {
     // Poll for new chat rooms every 5 seconds
     const interval = setInterval(loadChatRooms, 5000)
     return () => clearInterval(interval)
-  }, [userId])
+  }, [user])
 
-  if (!userId) {
+  if (!user) {
     return <div className="p-8">Loading...</div>
   }
 

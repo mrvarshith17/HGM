@@ -50,13 +50,12 @@ export default function SalonStaffPage() {
   }, [salonId])
 
   const handleBookWithStaff = (staffId: string | null) => {
-    // Store selected staff ID and navigate to booking page
+    // Navigate to booking page with staff ID as query parameter
     if (staffId) {
-      localStorage.setItem('selectedStaffId', staffId)
+      router.push(`/salon/${salonId}?staffId=${staffId}#booking`)
     } else {
-      localStorage.removeItem('selectedStaffId')
+      router.push(`/salon/${salonId}#booking`)
     }
-    router.push(`/salon/${salonId}#booking`)
   }
 
   if (loading) {

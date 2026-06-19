@@ -8,6 +8,8 @@ import { Calendar, MapPin, Clock, Phone, Scissors, Star, Trash2, MessageCircle }
 import { formatTimeWith12Hour, formatAppointmentDate } from '@/lib/utils'
 import { createChatRoom } from '@/lib/db-chat-service'
 import { RecommendationWidget } from '@/components/recommendation-widget'
+import { useAuth } from '@/hooks/useAuth'
+import { getQuickBooking, clearQuickBooking } from '@/lib/db-temp-state-service'
 
 interface Booking {
   id: string
@@ -56,7 +58,7 @@ function BookingServices({ services }: { services?: string[] }) {
 
 export default function UserDashboardPage() {
   const router = useRouter()
-  const [userId, setUserId] = useState<string | null>(null)
+  const { user, loading: authLoading } = useAuth()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [quickBooking, setQuickBooking] = useState<{ salonId: string; salonName: string } | null>(null)
@@ -77,25 +79,32 @@ export default function UserDashboardPage() {
   }, [])
 
   useEffect(() => {
-    const authToken = localStorage.getItem('authToken')
-    if (!authToken) {
+    if (authLoading) return
+
+    if (!user) {
       router.push('/auth/login')
       return
     }
 
-    setUserId(authToken)
-    fetchBookings(authToken)
+    fetchBookings(user.uid)
 
-    // Load quick booking data from AI search
-    const qbData = localStorage.getItem('quickBooking')
-    if (qbData) {
+    // Load quick booking data from database
+    const loadQuickBooking = async () => {
       try {
-        setQuickBooking(JSON.parse(qbData))
-      } catch (e) {
-        console.error('Failed to parse quickBooking:', e)
+        const qbData = await getQuickBooking(user.uid)
+        if (qbData) {
+          setQuickBooking({
+            salonId: qbData.salonId,
+            salonName: qbData.staffId || 'Selected Salon', // Use a better name if available
+          })
+        }
+      } catch (error) {
+        console.error('Failed to load quick booking:', error)
       }
     }
-  }, [fetchBookings, router])
+
+    loadQuickBooking()
+  }, [authLoading, user, fetchBookings, router])
 
   const handleCancelBooking = async (bookingId: string) => {
     if (!confirm('Are you sure you want to cancel this booking?')) return
@@ -122,8 +131,7 @@ export default function UserDashboardPage() {
 
   const handleStartChat = async (booking: Booking) => {
     try {
-      const userId = localStorage.getItem('authToken')
-      if (!userId) {
+      if (!user) {
         router.push('/auth/login')
         return
       }
@@ -132,7 +140,7 @@ export default function UserDashboardPage() {
         id: booking.id,
         bookingId: booking.bookingId,
         salonId: booking.salonId,
-        userId: userId
+        userId: user.uid
       })
 
       // Validate required fields
@@ -148,16 +156,16 @@ export default function UserDashboardPage() {
       
       console.log('[Start Chat] Creating room with:', {
         bookingId: chatBookingId,
-        userId,
+        userId: user.uid,
         salonId: booking.salonId
       })
 
       // Create or get existing chat room
       const chatRoom = await createChatRoom({
         bookingId: chatBookingId,
-        userId,
+        userId: user.uid,
         salonId: booking.salonId,
-        participants: [userId, booking.salonId],
+        participants: [user.uid, booking.salonId],
       })
 
       console.log('[Start Chat] Room created:', chatRoom)
@@ -194,11 +202,10 @@ export default function UserDashboardPage() {
   }
 
   const handleSubmitReview = async (booking: Booking) => {
-    const userId = localStorage.getItem('authToken')
     const bookingId = getBookingReviewKey(booking)
     const draft = getReviewDraft(booking)
 
-    if (!userId || !bookingId) {
+    if (!user || !bookingId) {
       router.push('/auth/login')
       return
     }
@@ -211,13 +218,12 @@ export default function UserDashboardPage() {
     updateReviewDraft(booking, { submitting: true })
 
     try {
-      const userData = JSON.parse(localStorage.getItem('userData') || '{}') as { name?: string }
       const response = await fetch(`/api/salons/${booking.salonId}/reviews`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId,
-          userName: userData.name,
+          userId: user.uid,
+          userName: user.name,
           bookingId,
           rating: draft.rating,
           comment: draft.comment,
@@ -283,7 +289,9 @@ export default function UserDashboardPage() {
                   <div className="flex gap-3">
                     <button
                       onClick={() => {
-                        localStorage.removeItem('quickBooking')
+                        if (user) {
+                          clearQuickBooking(user.uid).catch(console.error)
+                        }
                         setQuickBooking(null)
                         router.push(`/create-salon/booking?salonId=${quickBooking.salonId}`)
                       }}
@@ -293,7 +301,9 @@ export default function UserDashboardPage() {
                     </button>
                     <button
                       onClick={() => {
-                        localStorage.removeItem('quickBooking')
+                        if (user) {
+                          clearQuickBooking(user.uid).catch(console.error)
+                        }
                         setQuickBooking(null)
                       }}
                       className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium rounded-lg transition-colors"
@@ -307,9 +317,9 @@ export default function UserDashboardPage() {
           )}
 
           {/* AI Recommendations Section */}
-          {!loading && userId && (
+          {!loading && user && (
             <div className="mb-12">
-              <RecommendationWidget userId={userId} limit={5} />
+              <RecommendationWidget userId={user.uid} limit={5} />
             </div>
           )}
 
