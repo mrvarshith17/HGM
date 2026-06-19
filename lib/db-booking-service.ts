@@ -8,6 +8,7 @@ export interface Booking {
   bookingId: string
   userId: string
   salonId: string
+  staffId?: string | null
   serviceId: string | null
   services?: string[]
   customerName?: string
@@ -21,6 +22,7 @@ export interface Booking {
   updatedAt: string | Date
   salon?: any
   user?: any
+  staff?: any
 }
 
 export async function createBooking(bookingData: Omit<Booking, 'id' | 'bookingId' | 'createdAt' | 'updatedAt'>) {

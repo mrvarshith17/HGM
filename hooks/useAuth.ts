@@ -57,6 +57,9 @@ export function useAuth() {
       const result = await response.json()
       // In production, get actual token from Firebase
       localStorage.setItem('authToken', result.uid)
+      localStorage.setItem('userId', result.uid) // Store userId for chat pages
+      localStorage.setItem('userType', data.userType)
+      localStorage.setItem('userEmail', data.email)
       localStorage.setItem('userData', JSON.stringify({
         uid: result.uid,
         email: result.email,
@@ -95,6 +98,9 @@ export function useAuth() {
 
       const result = await response.json()
       localStorage.setItem('authToken', result.uid)
+      localStorage.setItem('userId', result.uid) // Store userId for chat pages
+      localStorage.setItem('userType', result.userType || 'customer')
+      localStorage.setItem('userEmail', result.email)
       localStorage.setItem('userData', JSON.stringify(result))
 
       setUser(result)
@@ -128,6 +134,9 @@ export function useAuth() {
 
       const result = await response.json()
       localStorage.setItem('authToken', result.uid)
+      localStorage.setItem('userId', result.uid) // Store userId for chat pages
+      localStorage.setItem('userType', result.userType || 'customer')
+      localStorage.setItem('userEmail', result.email)
       localStorage.setItem('userData', JSON.stringify(result))
       setUser(result)
       router.push(result.userType === 'customer' ? '/search' : '/dashboard/salon')
@@ -144,6 +153,8 @@ export function useAuth() {
       console.error('Logout error:', error)
     } finally {
       localStorage.removeItem('authToken')
+      localStorage.removeItem('userId')
+      localStorage.removeItem('salonId')
       localStorage.removeItem('userData')
       setUser(null)
       router.push('/')

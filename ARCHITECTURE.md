@@ -65,10 +65,10 @@ HGM (Hyderabad Grooming Marketplace) is a full-stack web application built with 
 
 Additional Services:
 ┌──────────────────────────────────────────────────────────────┐
-│  ┌─────────────────┐  ┌──────────────────┐                  │
-│  │ Replicate API   │  │ Google Maps API  │                  │
-│  │ (AI Preview)    │  │ (Location Svc)   │                  │
-│  └─────────────────┘  └──────────────────┘                  │
+│  ┌─────────────────┐                                         │
+│  │ Replicate API   │                                         │
+│  │ (AI Preview)    │                                         │
+│  └─────────────────┘                                         │
 └──────────────────────────────────────────────────────────────┘
 ```
 

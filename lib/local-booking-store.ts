@@ -2,12 +2,14 @@ import { promises as fs } from 'fs'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
 import { findLocalSalon } from '@/lib/local-salon-store'
+import { findStaffById } from '@/lib/local-staff-store'
 
 type Booking = {
   id: string
   bookingId: string
   userId: string
   salonId: string
+  staffId?: string | null
   serviceId: string | null
   services?: string[]
   customerName?: string
@@ -65,6 +67,7 @@ export async function writeLocalBookings(bookings: Booking[]) {
 export async function addLocalBooking(payload: {
   userId: string
   salonId: string
+  staffId?: string | null
   serviceId?: string | null
   services?: string[]
   customerName?: string
@@ -80,6 +83,7 @@ export async function addLocalBooking(payload: {
     bookingId: randomUUID(),
     userId: payload.userId,
     salonId: payload.salonId,
+    staffId: payload.staffId || null,
     serviceId: payload.serviceId ?? payload.services?.[0] ?? null,
     services: payload.services ?? [],
     customerName: payload.customerName,
@@ -124,9 +128,13 @@ export async function updateLocalBookingStatus(id: string, status: Booking['stat
 
 export async function mapBookingSalonData(booking: Booking) {
   const salon = await findLocalSalon(booking.salonId)
+  const staff = booking.staffId ? await findStaffById(booking.staffId) : null
+  
   return {
     ...booking,
     services: getBookingServices(booking),
+    staffName: staff?.name || null,
+    staffSpecialization: staff?.specialization || null,
     salon: salon
       ? { name: salon.name, address: salon.address, phone: salon.phone }
       : { name: '', address: '', phone: '' },

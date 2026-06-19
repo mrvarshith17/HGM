@@ -42,13 +42,13 @@
     "description": "all haircuts available",
     "city": "",
     "email": "",
-    "rating": 0,
-    "reviewCount": 0,
+    "rating": 5,
+    "reviewCount": 1,
     "services": [],
     "profilePicture": "",
     "operatingHours": {},
     "createdAt": "2026-06-11T15:38:23.351Z",
-    "updatedAt": "2026-06-11T15:38:23.351Z"
+    "updatedAt": "2026-06-19T03:08:14.832Z"
   },
   {
     "id": "59754bb2-00f1-40be-a8cf-34aa0477b06d",
@@ -70,5 +70,26 @@
     "operatingHours": {},
     "createdAt": "2026-06-12T06:20:28.667Z",
     "updatedAt": "2026-06-12T06:20:28.667Z"
+  },
+  {
+    "id": "ec34ef60-817f-47c6-a1be-ddd6d2921e87",
+    "ownerId": "62713606-701b-47a6-94a1-8c3cbce96565",
+    "name": "Spa",
+    "address": "Kondapur,Hyderabad",
+    "phone": "8790233923",
+    "description": "all haircuts available",
+    "city": "Hyderabad",
+    "email": "",
+    "rating": 5,
+    "reviewCount": 1,
+    "services": [
+      "Haircur",
+      "Firecut",
+      "Faceail"
+    ],
+    "profilePicture": "",
+    "operatingHours": {},
+    "createdAt": "2026-06-15T02:51:23.768Z",
+    "updatedAt": "2026-06-19T03:08:28.953Z"
   }
 ]

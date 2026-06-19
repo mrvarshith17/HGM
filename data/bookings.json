@@ -148,5 +148,145 @@
     "status": "completed",
     "createdAt": "2026-06-12T06:22:50.965Z",
     "updatedAt": "2026-06-12T06:23:17.830Z"
+  },
+  {
+    "id": "71171d89-a07a-4fd3-a4dc-5b382c49c955",
+    "bookingId": "caf35073-c75c-4c43-b08f-30ed4c0b1404",
+    "userId": "3addea36-323c-46d7-a994-9431b9679fa6",
+    "salonId": "ec34ef60-817f-47c6-a1be-ddd6d2921e87",
+    "serviceId": "Firecut",
+    "services": [
+      "Firecut",
+      "Faceail"
+    ],
+    "customerName": "SHANKAR",
+    "customerEmail": "pundruv_ug_22@ece.nits.ac.in",
+    "customerPhone": "8125408610",
+    "appointmentDate": "2026-06-15",
+    "appointmentTime": "08:30 AM",
+    "notes": "",
+    "status": "cancelled",
+    "createdAt": "2026-06-15T02:58:52.498Z",
+    "updatedAt": "2026-06-17T14:39:27.505Z"
+  },
+  {
+    "id": "c4a502e3-c9f2-4c4e-a2e3-1c0c78c01f14",
+    "bookingId": "f532944a-6209-48c6-8183-fa39bb5f9cf8",
+    "userId": "62713606-701b-47a6-94a1-8c3cbce96565",
+    "salonId": "ec34ef60-817f-47c6-a1be-ddd6d2921e87",
+    "staffId": null,
+    "serviceId": "Firecut",
+    "services": [
+      "Firecut"
+    ],
+    "customerName": "SHANKAR",
+    "customerEmail": "pundruv_ug_22@ece.nits.ac.in",
+    "customerPhone": "8125408610",
+    "appointmentDate": "2026-06-17",
+    "appointmentTime": "07:59 PM",
+    "notes": "",
+    "status": "completed",
+    "createdAt": "2026-06-17T14:29:04.573Z",
+    "updatedAt": "2026-06-17T14:44:13.659Z"
+  },
+  {
+    "id": "17196b62-3127-46b8-be75-6135c3482745",
+    "bookingId": "2d4b7725-34eb-4856-a7cc-88c74ba014d2",
+    "userId": "62713606-701b-47a6-94a1-8c3cbce96565",
+    "salonId": "ec34ef60-817f-47c6-a1be-ddd6d2921e87",
+    "staffId": null,
+    "serviceId": "Firecut",
+    "services": [
+      "Firecut"
+    ],
+    "customerName": "SHANKAR",
+    "customerEmail": "pundruv_ug_22@ece.nits.ac.in",
+    "customerPhone": "8125408610",
+    "appointmentDate": "2026-06-17",
+    "appointmentTime": "08:01 PM",
+    "notes": "",
+    "status": "completed",
+    "createdAt": "2026-06-17T14:30:44.467Z",
+    "updatedAt": "2026-06-17T14:44:20.765Z"
+  },
+  {
+    "id": "4fbc8cb8-d98a-4ffa-96f9-5b26dd8b73b5",
+    "bookingId": "4085943a-4158-4481-803f-21f90fd35cba",
+    "userId": "3addea36-323c-46d7-a994-9431b9679fa6",
+    "salonId": "ec34ef60-817f-47c6-a1be-ddd6d2921e87",
+    "staffId": null,
+    "serviceId": "Firecut",
+    "services": [
+      "Firecut"
+    ],
+    "customerName": "VARSHITH PUNDRU",
+    "customerEmail": "pundruvarshith17@gmail.com",
+    "customerPhone": "8790233923",
+    "appointmentDate": "2026-06-17",
+    "appointmentTime": "08:03 PM",
+    "notes": "",
+    "status": "cancelled",
+    "createdAt": "2026-06-17T14:32:37.815Z",
+    "updatedAt": "2026-06-17T14:43:26.398Z"
+  },
+  {
+    "id": "test-booking-with-staff",
+    "bookingId": "test-booking-with-staff-1",
+    "userId": "3addea36-323c-46d7-a994-9431b9679fa6",
+    "salonId": "ec34ef60-817f-47c6-a1be-ddd6d2921e87",
+    "staffId": "ba3ffb3e-3951-48de-b267-2d78cf7ff239",
+    "serviceId": "Firecut",
+    "services": [
+      "Firecut"
+    ],
+    "customerName": "VARSHITH PUNDRU",
+    "customerEmail": "pundruvarshith17@gmail.com",
+    "customerPhone": "8790233923",
+    "appointmentDate": "2026-06-17",
+    "appointmentTime": "08:03 AM",
+    "notes": "Test booking with staff",
+    "status": "completed",
+    "createdAt": "2026-06-17T14:32:37.815Z",
+    "updatedAt": "2026-06-17T14:44:05.790Z"
+  },
+  {
+    "id": "4b65c362-76bb-4724-900a-493a9b687e28",
+    "bookingId": "310a412a-16f8-4bba-8d34-6e56427c33c8",
+    "userId": "3addea36-323c-46d7-a994-9431b9679fa6",
+    "salonId": "ec34ef60-817f-47c6-a1be-ddd6d2921e87",
+    "staffId": "ba3ffb3e-3951-48de-b267-2d78cf7ff239",
+    "serviceId": "Firecut",
+    "services": [
+      "Firecut"
+    ],
+    "customerName": "VARSHITH PUNDRU",
+    "customerEmail": "pundruvarshith17@gmail.com",
+    "customerPhone": "8790233923",
+    "appointmentDate": "2026-06-19",
+    "appointmentTime": "08:50 AM",
+    "notes": "",
+    "status": "cancelled",
+    "createdAt": "2026-06-19T03:17:59.777Z",
+    "updatedAt": "2026-06-19T04:24:14.527Z"
+  },
+  {
+    "id": "b389f04c-514d-412e-8f8f-d32106e34cd8",
+    "bookingId": "aa74e064-5045-4bdb-8c1b-14900d2cc6d4",
+    "userId": "3addea36-323c-46d7-a994-9431b9679fa6",
+    "salonId": "ec34ef60-817f-47c6-a1be-ddd6d2921e87",
+    "staffId": "ba3ffb3e-3951-48de-b267-2d78cf7ff239",
+    "serviceId": "Firecut",
+    "services": [
+      "Firecut"
+    ],
+    "customerName": "VARSHITH PUNDRU",
+    "customerEmail": "pundruvarshith17@gmail.com",
+    "customerPhone": "08790233923",
+    "appointmentDate": "2026-06-19",
+    "appointmentTime": "10:00 AM",
+    "notes": "",
+    "status": "confirmed",
+    "createdAt": "2026-06-19T04:25:13.786Z",
+    "updatedAt": "2026-06-19T04:25:13.786Z"
   }
 ]

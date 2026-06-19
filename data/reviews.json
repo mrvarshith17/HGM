@@ -1,0 +1,24 @@
+[
+  {
+    "id": "9a647fba-5b7e-427c-9a7a-317053a15aac",
+    "salonId": "6e4bea40-0c9e-4477-a9cb-e4f5679cf49c",
+    "bookingId": "5a2d6a7a-7895-4304-a51d-cc611f8ce667",
+    "userId": "3addea36-323c-46d7-a994-9431b9679fa6",
+    "userName": "SHANKAR",
+    "rating": 5,
+    "comment": "kjkj",
+    "createdAt": "2026-06-19T03:08:14.821Z",
+    "updatedAt": "2026-06-19T03:08:14.821Z"
+  },
+  {
+    "id": "7a0434be-5c27-49c2-85b9-c6ab85b4e1b0",
+    "salonId": "ec34ef60-817f-47c6-a1be-ddd6d2921e87",
+    "bookingId": "test-booking-with-staff",
+    "userId": "3addea36-323c-46d7-a994-9431b9679fa6",
+    "userName": "SHANKAR",
+    "rating": 5,
+    "comment": "good",
+    "createdAt": "2026-06-19T03:08:28.941Z",
+    "updatedAt": "2026-06-19T03:08:28.941Z"
+  }
+]

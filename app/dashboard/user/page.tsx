@@ -4,13 +4,18 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Navigation from '@/components/navigation'
 import { Button } from '@/components/ui/button'
-import { Calendar, MapPin, Clock, Phone, Scissors, Star, Trash2 } from 'lucide-react'
+import { Calendar, MapPin, Clock, Phone, Scissors, Star, Trash2, MessageCircle } from 'lucide-react'
 import { formatTimeWith12Hour, formatAppointmentDate } from '@/lib/utils'
+import { createChatRoom } from '@/lib/db-chat-service'
+import { RecommendationWidget } from '@/components/recommendation-widget'
 
 interface Booking {
   id: string
   bookingId?: string
   salonId: string
+  staffId?: string | null
+  staffName?: string | null
+  staffSpecialization?: string | null
   appointmentDate: string
   appointmentTime: string
   services?: string[]
@@ -51,8 +56,10 @@ function BookingServices({ services }: { services?: string[] }) {
 
 export default function UserDashboardPage() {
   const router = useRouter()
+  const [userId, setUserId] = useState<string | null>(null)
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
+  const [quickBooking, setQuickBooking] = useState<{ salonId: string; salonName: string } | null>(null)
   const [reviewDrafts, setReviewDrafts] = useState<Record<string, { rating: number; comment: string; submitting?: boolean }>>({})
 
   const fetchBookings = useCallback(async (userId: string) => {
@@ -70,13 +77,24 @@ export default function UserDashboardPage() {
   }, [])
 
   useEffect(() => {
-    const userId = localStorage.getItem('authToken')
-    if (!userId) {
+    const authToken = localStorage.getItem('authToken')
+    if (!authToken) {
       router.push('/auth/login')
       return
     }
 
-    fetchBookings(userId)
+    setUserId(authToken)
+    fetchBookings(authToken)
+
+    // Load quick booking data from AI search
+    const qbData = localStorage.getItem('quickBooking')
+    if (qbData) {
+      try {
+        setQuickBooking(JSON.parse(qbData))
+      } catch (e) {
+        console.error('Failed to parse quickBooking:', e)
+      }
+    }
   }, [fetchBookings, router])
 
   const handleCancelBooking = async (bookingId: string) => {
@@ -99,6 +117,57 @@ export default function UserDashboardPage() {
     } catch (error) {
       console.error('Cancel error:', error)
       alert(error instanceof Error ? error.message : 'Failed to cancel booking')
+    }
+  }
+
+  const handleStartChat = async (booking: Booking) => {
+    try {
+      const userId = localStorage.getItem('authToken')
+      if (!userId) {
+        router.push('/auth/login')
+        return
+      }
+
+      console.log('[Start Chat] Booking data:', {
+        id: booking.id,
+        bookingId: booking.bookingId,
+        salonId: booking.salonId,
+        userId: userId
+      })
+
+      // Validate required fields
+      if (!booking.id && !booking.bookingId) {
+        throw new Error('Booking ID is missing. Please refresh and try again.')
+      }
+      if (!booking.salonId) {
+        throw new Error('Salon ID is missing. Cannot start chat.')
+      }
+
+      // Use bookingId if id is not available
+      const chatBookingId = booking.id || booking.bookingId
+      
+      console.log('[Start Chat] Creating room with:', {
+        bookingId: chatBookingId,
+        userId,
+        salonId: booking.salonId
+      })
+
+      // Create or get existing chat room
+      const chatRoom = await createChatRoom({
+        bookingId: chatBookingId,
+        userId,
+        salonId: booking.salonId,
+        participants: [userId, booking.salonId],
+      })
+
+      console.log('[Start Chat] Room created:', chatRoom)
+      
+      // Navigate to chat page
+      router.push('/dashboard/user/chat')
+    } catch (error) {
+      console.error('Failed to start chat:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start chat. Please try again.'
+      alert(errorMessage)
     }
   }
 
@@ -202,6 +271,48 @@ export default function UserDashboardPage() {
         <div className="mx-auto max-w-4xl">
           <h1 className="text-4xl font-bold text-white mb-12">My Bookings</h1>
 
+          {/* Quick Booking Alert from AI Search */}
+          {quickBooking && (
+            <div className="mb-8 p-6 bg-gradient-to-r from-green-950 to-emerald-950 rounded-lg border-2 border-green-500 shadow-lg">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-green-300 mb-2">📍 Ready to Book!</h3>
+                  <p className="text-green-100 mb-4">
+                    You found <span className="font-bold text-white">{quickBooking.salonName}</span> from AI search. Let's complete your booking!
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        localStorage.removeItem('quickBooking')
+                        setQuickBooking(null)
+                        router.push(`/create-salon/booking?salonId=${quickBooking.salonId}`)
+                      }}
+                      className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
+                    >
+                      Book Now
+                    </button>
+                    <button
+                      onClick={() => {
+                        localStorage.removeItem('quickBooking')
+                        setQuickBooking(null)
+                      }}
+                      className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium rounded-lg transition-colors"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* AI Recommendations Section */}
+          {!loading && userId && (
+            <div className="mb-12">
+              <RecommendationWidget userId={userId} limit={5} />
+            </div>
+          )}
+
           {loading ? (
             <div className="text-center py-12">
               <p className="text-slate-400">Loading bookings...</p>
@@ -238,15 +349,26 @@ export default function UserDashboardPage() {
                               {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                             </span>
                           </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-red-400 border-red-600/30 hover:bg-red-900/20"
-                            onClick={() => handleCancelBooking(booking.id)}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Cancel
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-purple-400 border-purple-600/30 hover:bg-purple-900/20"
+                              onClick={() => handleStartChat(booking)}
+                            >
+                              <MessageCircle className="h-4 w-4 mr-2" />
+                              Chat
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-400 border-red-600/30 hover:bg-red-900/20"
+                              onClick={() => handleCancelBooking(booking.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Cancel
+                            </Button>
+                          </div>
                         </div>
 
                         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
@@ -283,6 +405,18 @@ export default function UserDashboardPage() {
                           </div>
 
                           <BookingServices services={booking.services} />
+
+                          {booking.staffId && booking.staffName && (
+                            <div className="sm:col-span-2 md:col-span-3">
+                              <p className="text-sm text-slate-400 mb-2">Professional</p>
+                              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-600/10 border border-purple-600/30">
+                                <span className="text-purple-200 font-medium">{booking.staffName}</span>
+                                {booking.staffSpecialization && (
+                                  <span className="text-purple-300 text-sm">• {booking.staffSpecialization}</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
 
                           {booking.notes && (
                             <div className="sm:col-span-2 md:col-span-3">
@@ -356,6 +490,18 @@ export default function UserDashboardPage() {
                           </div>
 
                           <BookingServices services={booking.services} />
+
+                          {booking.staffId && booking.staffName && (
+                            <div className="sm:col-span-2 md:col-span-3">
+                              <p className="text-sm text-slate-400 mb-2">Professional</p>
+                              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-600/10 border border-purple-600/30">
+                                <span className="text-purple-200 font-medium">{booking.staffName}</span>
+                                {booking.staffSpecialization && (
+                                  <span className="text-purple-300 text-sm">• {booking.staffSpecialization}</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
 
                           {booking.notes && (
                             <div className="sm:col-span-2 md:col-span-3">

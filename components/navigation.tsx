@@ -32,6 +32,9 @@ export default function Navigation() {
                   <Link href="/dashboard/user" className="text-sm text-slate-300 hover:text-white transition">
                     My Bookings
                   </Link>
+                  <Link href="/dashboard/user/chat" className="text-sm text-slate-300 hover:text-white transition">
+                    💬 Messages
+                  </Link>
                 </>
               )}
               {user.userType === 'salon_owner' && (
@@ -41,6 +44,12 @@ export default function Navigation() {
                   </Link>
                   <Link href="/dashboard/owner/bookings" className="text-sm text-slate-300 hover:text-white transition">
                     My Bookings
+                  </Link>
+                  <Link href="/dashboard/owner/staff" className="text-sm text-slate-300 hover:text-white transition">
+                    👥 Staff
+                  </Link>
+                  <Link href="/dashboard/owner/chat" className="text-sm text-slate-300 hover:text-white transition">
+                    💬 Messages
                   </Link>
                   <Link href="/create-salon">
                     <Button size="sm" className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">

@@ -37,8 +37,33 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const googleMapsApiKey = process.env.NEXT_PUBLIC_GCP_API_KEY
+
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+      <head>
+        {googleMapsApiKey && (
+          <>
+            <script
+              src={`https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=places,geometry`}
+              async
+              defer
+              onLoad={() => {
+                // Signal that Google Maps is loaded
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('googleMapsLoaded'))
+                }
+              }}
+              onError={() => {
+                if (typeof window !== 'undefined') {
+                  console.error('Failed to load Google Maps API. Check your API key and ensure billing is enabled.')
+                  window.dispatchEvent(new CustomEvent('googleMapsError'))
+                }
+              }}
+            ></script>
+          </>
+        )}
+      </head>
       <body className="font-sans antialiased">
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}

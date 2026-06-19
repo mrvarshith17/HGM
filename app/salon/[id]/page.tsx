@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Navigation from '@/components/navigation'
 import { Button } from '@/components/ui/button'
-import { Check, MapPin, Phone, Mail, Scissors, Star, Calendar } from 'lucide-react'
+import { Check, MapPin, Phone, Mail, Scissors, Star, Calendar, Award } from 'lucide-react'
 import { getStarStates } from '@/lib/rating-utils'
 
 interface Salon {
@@ -22,6 +22,23 @@ interface Salon {
   operatingHours?: Record<string, string>
 }
 
+interface Staff {
+  id: string
+  staffId: string
+  salonId: string
+  name: string
+  specialization: string
+  bio?: string
+  profilePicture?: string
+  services: string[]
+  yearsExperience?: number
+  certifications?: string[]
+  rating: number
+  reviewCount: number
+  createdAt: string | Date
+  updatedAt: string | Date
+}
+
 interface Review {
   id: string
   userId: string
@@ -36,8 +53,10 @@ export default function SalonDetailPage() {
   const salonId = params.id as string
 
   const [salon, setSalon] = useState<Salon | null>(null)
+  const [staff, setStaff] = useState<Staff[]>([])
   const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedStaffId, setSelectedStaffId] = useState<string>('')
   const [customerName, setCustomerName] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
@@ -45,15 +64,16 @@ export default function SalonDetailPage() {
   const [appointmentTime, setAppointmentTime] = useState('')
   const [timePeriod, setTimePeriod] = useState('AM')
   const [notes, setNotes] = useState('')
-  const [selectedServices, setSelectedServices] = useState<string[]>([])
+  const [selectedService, setSelectedService] = useState<string>('')
   const [bookingLoading, setBookingLoading] = useState(false)
 
   const fetchSalonDetails = useCallback(async () => {
     try {
       setLoading(true)
-      const [salonRes, reviewsRes] = await Promise.all([
+      const [salonRes, reviewsRes, staffRes] = await Promise.all([
         fetch(`/api/salons/${salonId}`),
         fetch(`/api/salons/${salonId}/reviews`),
+        fetch(`/api/salons/${salonId}/staff-local`),
       ])
 
       if (salonRes.ok) {
@@ -64,6 +84,11 @@ export default function SalonDetailPage() {
       if (reviewsRes.ok) {
         const reviewsData = await reviewsRes.json()
         setReviews(reviewsData)
+      }
+
+      if (staffRes.ok) {
+        const staffData = await staffRes.json()
+        setStaff(staffData.data || [])
       }
     } catch (error) {
       console.error('Failed to fetch salon details:', error)
@@ -90,13 +115,10 @@ export default function SalonDetailPage() {
     return () => window.removeEventListener('salonReviewSubmitted', handleReviewSubmitted)
   }, [fetchSalonDetails, salonId])
 
-  const toggleService = (service: string) => {
-    setSelectedServices((currentServices) =>
-      currentServices.includes(service)
-        ? currentServices.filter((currentService) => currentService !== service)
-        : [...currentServices, service]
-    )
-  }
+  // Get staff available for the selected service
+  const availableStaffForService = selectedService
+    ? staff.filter((member) => member.services.includes(selectedService))
+    : []
 
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -118,8 +140,8 @@ export default function SalonDetailPage() {
     }
 
     const availableServices = salon?.services ?? []
-    if (availableServices.length > 0 && selectedServices.length === 0) {
-      alert('Please select at least one service for your booking')
+    if (availableServices.length > 0 && !selectedService) {
+      alert('Please select a service for your booking')
       return
     }
 
@@ -138,8 +160,9 @@ export default function SalonDetailPage() {
           customerPhone,
           appointmentDate,
           appointmentTime: formattedTime,
-          serviceId: selectedServices[0] ?? null,
-          services: selectedServices,
+          serviceId: selectedService || null,
+          services: selectedService ? [selectedService] : [],
+          staffId: selectedStaffId || null,
           notes,
         }),
       })
@@ -152,7 +175,8 @@ export default function SalonDetailPage() {
         setAppointmentDate('')
         setAppointmentTime('')
         setTimePeriod('AM')
-        setSelectedServices([])
+        setSelectedService('')
+        setSelectedStaffId('')
         setNotes('')
         router.push('/dashboard/user')
       } else {
@@ -246,8 +270,80 @@ export default function SalonDetailPage() {
           </div>
 
           <div className="grid gap-8 lg:grid-cols-3">
-            {/* Services */}
+            {/* Services & Staff */}
             <div className="lg:col-span-2 space-y-8">
+              {/* Staff Members */}
+              <div className="rounded-lg border border-slate-800 bg-slate-900/50 backdrop-blur p-8">
+                <h2 className="text-2xl font-bold text-white mb-6">Our Professionals</h2>
+                {staff.length === 0 ? (
+                  <p className="text-slate-400">No staff members listed yet.</p>
+                ) : (
+                  <div className="grid gap-4">
+                    {staff.map((member) => (
+                      <div key={member.staffId} className="rounded-lg border border-slate-700 bg-slate-800/50 p-4 hover:border-indigo-600/50 transition">
+                        <div className="flex gap-4">
+                          <div className="flex-shrink-0">
+                            {member.profilePicture ? (
+                              <img 
+                                src={member.profilePicture} 
+                                alt={member.name} 
+                                className="h-20 w-20 rounded-lg object-cover bg-gradient-to-br from-indigo-600 to-purple-600"
+                              />
+                            ) : (
+                              <div className="h-20 w-20 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white text-xl font-bold">
+                                {member.name.charAt(0)}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold text-white">{member.name}</h3>
+                            <p className="text-indigo-400 text-sm font-medium">{member.specialization}</p>
+                            
+                            {member.bio && (
+                              <p className="text-slate-300 text-sm mt-1">{member.bio}</p>
+                            )}
+                            
+                            {member.yearsExperience && (
+                              <p className="text-slate-400 text-xs mt-2 flex items-center gap-1">
+                                <Award className="h-3 w-3" />
+                                {member.yearsExperience} years experience
+                              </p>
+                            )}
+                            
+                            <div className="flex items-center gap-2 mt-2">
+                              {getStarStates(member.rating).map((state, i) => (
+                                <div key={i} className="relative h-4 w-4">
+                                  <Star className="h-4 w-4 text-slate-600" />
+                                  {(state === 'full' || state === 'half') && (
+                                    <div className="absolute top-0 left-0 h-4 overflow-hidden" style={{ width: state === 'full' ? '100%' : '50%' }}>
+                                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                              <span className="text-white text-xs font-semibold">{member.rating.toFixed(1)}</span>
+                              <span className="text-slate-400 text-xs">({member.reviewCount} reviews)</span>
+                            </div>
+
+                            {member.services && member.services.length > 0 && (
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {member.services.map((service) => (
+                                  <span key={service} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-600/20 border border-indigo-600/30 text-indigo-200">
+                                    <Scissors className="h-3 w-3" />
+                                    {service}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Services */}
               <div className="rounded-lg border border-slate-800 bg-slate-900/50 backdrop-blur p-8">
                 <h2 className="text-2xl font-bold text-white mb-6">Services Offered</h2>
                 {(salon.services || []).length === 0 ? (
@@ -338,38 +434,51 @@ export default function SalonDetailPage() {
                 </div>
 
                 {(salon.services || []).length > 0 && (
-                  <div>
-                    <p className="block text-sm font-medium text-white mb-2">Services *</p>
-                    <div className="grid gap-2">
-                      {(salon.services || []).map((service) => {
-                        const selected = selectedServices.includes(service)
-
-                        return (
-                          <label
-                            key={service}
-                            className={`flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition ${
-                              selected
-                                ? 'border-indigo-500 bg-indigo-500/15 text-white'
-                                : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-600'
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selected}
-                              onChange={() => toggleService(service)}
-                              className="sr-only"
-                            />
-                            <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${
-                              selected ? 'border-indigo-400 bg-indigo-500' : 'border-slate-500 bg-slate-900'
-                            }`}>
-                              {selected && <Check className="h-4 w-4 text-white" />}
-                            </span>
-                            <span className="text-sm font-medium">{service}</span>
-                          </label>
-                        )
-                      })}
+                  <>
+                    <div>
+                      <p className="block text-sm font-medium text-white mb-2">Service *</p>
+                      <select
+                        value={selectedService}
+                        onChange={(e) => {
+                          setSelectedService(e.target.value)
+                          setSelectedStaffId('') // Reset staff selection when service changes
+                        }}
+                        className="w-full px-4 py-2 rounded-lg border border-slate-700 bg-slate-800 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        required
+                      >
+                        <option value="">-- Select a Service --</option>
+                        {(salon.services || []).map((service) => (
+                          <option key={service} value={service}>
+                            {service}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                  </div>
+
+                    {selectedService && (
+                      <div>
+                        <p className="block text-sm font-medium text-white mb-2">Staff Member for {selectedService}</p>
+                        {availableStaffForService.length > 0 ? (
+                          <select
+                            value={selectedStaffId}
+                            onChange={(e) => setSelectedStaffId(e.target.value)}
+                            className="w-full px-4 py-2 rounded-lg border border-slate-700 bg-slate-800 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          >
+                            <option value="">-- Any Available Staff --</option>
+                            {availableStaffForService.map((member) => (
+                              <option key={member.staffId} value={member.staffId}>
+                                {member.name} - {member.specialization}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div className="p-4 rounded-lg border border-yellow-600/30 bg-yellow-600/10">
+                            <p className="text-yellow-200 font-medium">No staff available for {selectedService}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
 
                 <div>

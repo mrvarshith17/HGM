@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Navigation from '@/components/navigation'
-import LocationAutocomplete from '@/components/location-autocomplete'
 import { Button } from '@/components/ui/button'
 
 function parseServices(value: string) {
@@ -19,8 +18,6 @@ export default function CreateSalonPage() {
   const router = useRouter()
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
-  const [latitude, setLatitude] = useState<number | null>(null)
-  const [longitude, setLongitude] = useState<number | null>(null)
   const [phone, setPhone] = useState('')
   const [description, setDescription] = useState('')
   const [servicesInput, setServicesInput] = useState('')
@@ -120,23 +117,13 @@ export default function CreateSalonPage() {
 
           <label className="block">
             <span className="text-sm text-slate-300">Address</span>
-            <div className="mt-2">
-              <LocationAutocomplete
-                value={address}
-                onSelect={(details) => {
-                  setAddress(details.address)
-                  setLatitude(details.latitude)
-                  setLongitude(details.longitude)
-                }}
-                placeholder="Search and select your salon location..."
-                className="rounded-2xl"
-              />
-            </div>
-            {latitude && longitude && (
-              <p className="mt-2 text-xs text-slate-400">
-                📍 Coordinates: {latitude.toFixed(4)}, {longitude.toFixed(4)}
-              </p>
-            )}
+            <input
+              value={address}
+              onChange={(event) => setAddress(event.target.value)}
+              required
+              className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-white focus:border-indigo-500 focus:outline-none"
+              placeholder="Enter your salon location..."
+            />
           </label>
 
           <label className="block">

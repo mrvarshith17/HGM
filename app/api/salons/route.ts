@@ -4,6 +4,7 @@ import { getSalonCity } from '@/lib/location'
 import { findLocalReviewsBySalonId } from '@/lib/local-review-store'
 import { roundRating } from '@/lib/rating-utils'
 import { adminDb } from '@/lib/firebase-admin'
+import { geocodeAddress } from '@/lib/google-maps-service'
 
 export const runtime = 'nodejs'
 
@@ -108,8 +109,18 @@ export async function GET(request: NextRequest) {
       if (ownerId) {
         salons = salons.filter(s => s.ownerId === ownerId)
       }
-      // Calculate ratings with reviews
-      salons = await Promise.all(salons.map(salon => calculateSalonRatingWithReviews(salon)))
+      // Calculate ratings and geocode
+      salons = await Promise.all(salons.map(async salon => {
+        let salonWithRating = await calculateSalonRatingWithReviews(salon)
+        // Add coordinates if missing
+        if (!salonWithRating.latitude || !salonWithRating.longitude) {
+          const coords = await geocodeAddress(`${salonWithRating.address}, ${salonWithRating.city}`)
+          if (coords) {
+            salonWithRating = { ...salonWithRating, ...coords }
+          }
+        }
+        return salonWithRating
+      }))
       return NextResponse.json(salons)
     }
 
@@ -119,8 +130,18 @@ export async function GET(request: NextRequest) {
       salons = salons.filter(s => s.ownerId === ownerId)
     }
     
-    // Calculate ratings with reviews for all salons
-    salons = await Promise.all(salons.map(salon => calculateSalonRatingWithReviews(salon)))
+    // Calculate ratings and geocode coordinates
+    salons = await Promise.all(salons.map(async salon => {
+      let salonWithRating = await calculateSalonRatingWithReviews(salon)
+      // Add coordinates if missing
+      if (!salonWithRating.latitude || !salonWithRating.longitude) {
+        const coords = await geocodeAddress(`${salonWithRating.address}, ${salonWithRating.city}`)
+        if (coords) {
+          salonWithRating = { ...salonWithRating, ...coords }
+        }
+      }
+      return salonWithRating
+    }))
     
     return NextResponse.json(salons)
   } catch (error) {
@@ -131,8 +152,18 @@ export async function GET(request: NextRequest) {
     if (ownerId) {
       salons = salons.filter(s => s.ownerId === ownerId)
     }
-    // Calculate ratings with reviews
-    salons = await Promise.all(salons.map(salon => calculateSalonRatingWithReviews(salon)))
+    // Calculate ratings and geocode
+    salons = await Promise.all(salons.map(async salon => {
+      let salonWithRating = await calculateSalonRatingWithReviews(salon)
+      // Add coordinates if missing
+      if (!salonWithRating.latitude || !salonWithRating.longitude) {
+        const coords = await geocodeAddress(`${salonWithRating.address}, ${salonWithRating.city}`)
+        if (coords) {
+          salonWithRating = { ...salonWithRating, ...coords }
+        }
+      }
+      return salonWithRating
+    }))
     return NextResponse.json(salons)
   }
 }
@@ -150,11 +181,21 @@ export async function POST(request: NextRequest) {
   const city = getSalonCity({ city: payload.city, address: payload.address })
   const services = normalizeServices(payload.services)
 
+  // Geocode the address to get coordinates
+  const coords = await geocodeAddress(`${payload.address}, ${city}`)
+
   try {
+    const salonData = {
+      ...payload,
+      city,
+      services,
+      ...(coords && { latitude: coords.latitude, longitude: coords.longitude })
+    }
+
     const response = await fetch(`${API_URL}/salons`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...payload, city, services }),
+      body: JSON.stringify(salonData),
     })
 
     const data = await response.json()
@@ -183,6 +224,7 @@ export async function POST(request: NextRequest) {
         phone: payload.phone,
         description: payload.description,
         services,
+        ...(coords && { latitude: coords.latitude, longitude: coords.longitude })
       })
 
       return NextResponse.json(localSalon, { status: 201 })

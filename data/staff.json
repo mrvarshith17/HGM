@@ -1,0 +1,21 @@
+[
+  {
+    "salonId": "ec34ef60-817f-47c6-a1be-ddd6d2921e87",
+    "name": "Rahul",
+    "specialization": "Firecut",
+    "bio": "",
+    "profilePicture": "",
+    "services": [
+      "Haitcut",
+      "Firecut"
+    ],
+    "yearsExperience": 5,
+    "certifications": [],
+    "rating": 0,
+    "reviewCount": 0,
+    "id": "ba3ffb3e-3951-48de-b267-2d78cf7ff239",
+    "staffId": "ba3ffb3e-3951-48de-b267-2d78cf7ff239",
+    "createdAt": "2026-06-17T14:06:34.995Z",
+    "updatedAt": "2026-06-17T14:23:23.964Z"
+  }
+]

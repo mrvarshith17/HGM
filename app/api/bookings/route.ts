@@ -7,6 +7,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 type BookingPayload = {
   userId?: string
   salonId?: string
+  staffId?: string | null
   serviceId?: string | null
   services?: unknown
   salonName?: string
@@ -65,6 +66,7 @@ export async function POST(request: NextRequest) {
         ...(data.booking || {}),
         userId: body.userId!,
         salonId: body.salonId!,
+        staffId: body.staffId || null,
         appointmentDate: body.appointmentDate!,
         appointmentTime: body.appointmentTime!,
         serviceId: body.serviceId ?? null,
@@ -100,6 +102,7 @@ export async function POST(request: NextRequest) {
       const localBooking = await addLocalBooking({
         userId: body.userId!,
         salonId: body.salonId!,
+        staffId: body.staffId || null,
         serviceId: body.serviceId ?? null,
         services: normalizeServices(body.services),
         customerName: body.customerName,

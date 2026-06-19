@@ -17,6 +17,8 @@ type Salon = {
   services: string[]
   profilePicture: string
   operatingHours: Record<string, string>
+  latitude?: number
+  longitude?: number
   createdAt: string
   updatedAt: string
 }

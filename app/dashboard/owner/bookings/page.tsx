@@ -4,14 +4,17 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Navigation from '@/components/navigation'
 import { Button } from '@/components/ui/button'
-import { Calendar, CheckCircle, Clock, Phone, Mail, ChevronDown, Scissors } from 'lucide-react'
+import { Calendar, CheckCircle, Clock, Phone, Mail, ChevronDown, Scissors, MessageCircle } from 'lucide-react'
 import { formatTimeWith12Hour, formatAppointmentDate } from '@/lib/utils'
 import SentimentDashboard from '@/components/SentimentDashboard' // 🤖 AI Dashboard Import
+import { createChatRoom } from '@/lib/db-chat-service'
 
 interface Booking {
   id: string
   bookingId: string
+  userId: string
   salonId: string
+  staffId?: string | null
   customerName: string
   customerEmail: string
   customerPhone: string
@@ -141,6 +144,31 @@ export default function OwnerBookingsPage() {
     } catch (error) {
       console.error('Update booking status error:', error)
       alert(error instanceof Error ? error.message : 'Failed to update booking')
+    }
+  }
+
+  const handleStartChat = async (booking: Booking) => {
+    try {
+      const salonId = localStorage.getItem('salonId')
+      if (!salonId) {
+        alert('Salon not found. Please refresh the page.')
+        return
+      }
+
+      // Create or get existing chat room
+      const chatRoom = await createChatRoom({
+        bookingId: booking.id,
+        userId: booking.userId,
+        salonId: booking.salonId,
+        staffId: booking.staffId || undefined,
+        participants: [booking.userId, booking.salonId],
+      })
+
+      // Navigate to chat page
+      router.push('/dashboard/owner/chat')
+    } catch (error) {
+      console.error('Failed to start chat:', error)
+      alert('Failed to start chat. Please try again.')
     }
   }
 
@@ -312,6 +340,14 @@ export default function OwnerBookingsPage() {
                             {booking.status}
                           </p>
                         </div>
+
+                        {booking.staffId && (
+                          <div>
+                            <p className="text-sm text-slate-400 mb-1">Assigned Stylist</p>
+                            <p className="text-white font-medium">Staff Member #{booking.staffId.slice(0, 8)}</p>
+                          </div>
+                        )}
+
                         <BookingServices services={booking.services} />
                         <div className="md:col-span-2">
                           <p className="text-sm text-slate-400 mb-3">Contact Information</p>
@@ -336,8 +372,16 @@ export default function OwnerBookingsPage() {
                             <p className="text-slate-300">{booking.notes}</p>
                           </div>
                         )}
-                        {booking.status !== 'completed' && booking.status !== 'cancelled' && (
-                          <div className="md:col-span-2 flex justify-end">
+                        <div className="md:col-span-2 flex gap-3 justify-end">
+                          <Button
+                            size="sm"
+                            onClick={() => handleStartChat(booking)}
+                            className="bg-purple-600 hover:bg-purple-700 flex items-center gap-2"
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                            Chat with Customer
+                          </Button>
+                          {booking.status !== 'completed' && booking.status !== 'cancelled' && (
                             <Button
                               size="sm"
                               onClick={() => handleBookingStatus(booking.id, 'completed')}
@@ -346,8 +390,8 @@ export default function OwnerBookingsPage() {
                               <CheckCircle className="h-4 w-4 mr-2" />
                               Mark Complete
                             </Button>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}

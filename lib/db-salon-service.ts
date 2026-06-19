@@ -15,6 +15,7 @@ export interface Salon {
   rating: number
   reviewCount: number
   services: string[]
+  staffMembers?: string[]
   profilePicture?: string
   operatingHours?: Record<string, string>
   createdAt?: string | Date

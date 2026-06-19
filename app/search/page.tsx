@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 import Navigation from '@/components/navigation'
-import { MapPin, Star, Search } from 'lucide-react'
-import { getSalonCity } from '@/lib/location'
-import { getStarStates } from '@/lib/rating-utils'
+import { Search } from 'lucide-react'
+import SalonsWithMap from '@/components/salons-with-map'
+import { SmartSearchWidget } from '@/components/smart-search-widget'
+import { useAuth } from '@/hooks/useAuth'
+import { RecommendationWidget } from '@/components/recommendation-widget'
 
 interface Salon {
   id: string
@@ -20,38 +21,30 @@ interface Salon {
   profilePicture?: string
   phone: string
   email: string
+  latitude?: number
+  longitude?: number
+  distanceFormatted?: string
 }
 
 export default function SearchPage() {
+  const { user } = useAuth()
   const [salons, setSalons] = useState<Salon[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCity, setSelectedCity] = useState('')
-  const [userOwnerId, setUserOwnerId] = useState<string | null>(null)
-  const [isOwner, setIsOwner] = useState(false)
 
   const fetchSalons = useCallback(async () => {
     try {
       setLoading(true)
-      const userData = localStorage.getItem('userData')
-      
-      if (userData) {
-        try {
-          const user = JSON.parse(userData)
-          setUserOwnerId(user.uid)
-          setIsOwner(user.userType === 'salon_owner')
-        } catch (error) {
-          console.error('Failed to parse user data:', error)
-        }
-      }
-
       const response = await fetch('/api/salons')
       if (response.ok) {
         const data = await response.json()
-        setSalons(data)
+        setSalons(Array.isArray(data) ? data : [])
+      } else {
+        console.error('Failed to fetch salons')
       }
     } catch (error) {
-      console.error('Failed to fetch salons:', error)
+      console.error('Error fetching salons:', error)
     } finally {
       setLoading(false)
     }
@@ -61,148 +54,118 @@ export default function SearchPage() {
     fetchSalons()
   }, [fetchSalons])
 
-  useEffect(() => {
-    const handleReviewSubmitted = () => {
-      console.log('Review submitted event received, refreshing salons...')
-      fetchSalons()
-    }
-    
-    window.addEventListener('salonReviewSubmitted', handleReviewSubmitted)
-    return () => window.removeEventListener('salonReviewSubmitted', handleReviewSubmitted)
-  }, [fetchSalons])
+  // Get unique cities
+  const cities = useMemo(() => {
+    return Array.from(new Set(salons.map((s) => s.city).filter(Boolean)))
+  }, [salons])
 
+  // Filter salons based on search query and selected city
   const filteredSalons = useMemo(() => {
-    let filtered = salons
-
-    // If user is salon owner, show only their salons
-    if (isOwner && userOwnerId) {
-      filtered = filtered.filter(salon => salon.ownerId === userOwnerId)
-    }
-
-    if (searchQuery) {
-      filtered = filtered.filter(salon =>
+    return salons.filter((salon) => {
+      const matchesQuery =
+        searchQuery === '' ||
         salon.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        salon.address.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    }
+        salon.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        salon.services.some((service) =>
+          service.toLowerCase().includes(searchQuery.toLowerCase())
+        )
 
-    if (selectedCity) {
-      filtered = filtered.filter(salon => getSalonCity(salon) === selectedCity)
-    }
+      const matchesCity = selectedCity === '' || salon.city === selectedCity
 
-    return filtered
-  }, [searchQuery, selectedCity, salons, isOwner, userOwnerId])
-
-  const cities = useMemo(() => (
-    Array
-      .from(new Set(salons.map((salon) => getSalonCity(salon)).filter(Boolean)))
-      .sort((a, b) => a.localeCompare(b))
-  ), [salons])
+      return matchesQuery && matchesCity
+    })
+  }, [salons, searchQuery, selectedCity])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900">
+    <main className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900">
       <Navigation />
 
-      <section className="px-6 py-12">
-        <div className="mx-auto max-w-6xl">
-          <h1 className="text-4xl font-bold text-white mb-8">Find Your Perfect Salon</h1>
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2">Find Your Perfect Salon</h1>
+          <p className="text-slate-400">Search and discover salons near you with maps</p>
+        </div>
 
-          {/* Search and Filters */}
-          <div className="mb-12 space-y-4 lg:flex lg:gap-4 lg:space-y-0">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+        {/* Recommendations for Logged-in Users */}
+        {user && (
+          <div className="mb-8 bg-gradient-to-r from-indigo-950 to-purple-950 rounded-lg border border-indigo-500/20 p-6">
+            <RecommendationWidget userId={user.uid} limit={3} />
+          </div>
+        )}
+
+        {/* Search and Filter */}
+        <div className="bg-slate-900 rounded-lg border border-slate-700 p-6 mb-8">
+          <div className="flex flex-col gap-4">
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-500" />
               <input
                 type="text"
-                placeholder="Search salons..."
+                placeholder="Search by salon name, location, or service..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 rounded-lg border border-slate-700 bg-slate-800 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50"
               />
             </div>
 
-            <select
-              value={selectedCity}
-              onChange={(e) => setSelectedCity(e.target.value)}
-              className="px-4 py-3 rounded-lg border border-slate-700 bg-slate-800 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="">All Cities</option>
-              {cities.map(city => (
-                <option key={city} value={city} className="bg-slate-800 text-white">{city}</option>
-              ))}
-            </select>
+            {/* City Filter */}
+            {cities.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                <button
+                  onClick={() => setSelectedCity('')}
+                  className={`px-4 py-2 rounded-lg whitespace-nowrap transition ${
+                    selectedCity === ''
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  All Cities
+                </button>
+                {cities.map((city) => (
+                  <button
+                    key={city}
+                    onClick={() => setSelectedCity(city)}
+                    className={`px-4 py-2 rounded-lg whitespace-nowrap transition ${
+                      selectedCity === city
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    {city}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-
-          {/* Salons Grid */}
-          {loading ? (
-            <div className="text-center py-12">
-              <p className="text-slate-400">Loading salons...</p>
-            </div>
-          ) : filteredSalons.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-slate-400">No salons found. Try a different search.</p>
-            </div>
-          ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredSalons.map((salon) => (
-                <Link key={salon.id} href={`/salon/${salon.id}`}>
-                  <div className="group rounded-lg border border-slate-800 bg-slate-900/50 backdrop-blur overflow-hidden hover:border-indigo-500 transition cursor-pointer">
-                    <div className="h-48 bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
-                      {salon.profilePicture ? (
-                        <img src={salon.profilePicture} alt={salon.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="text-white text-4xl font-bold opacity-50">✂️</div>
-                      )}
-                    </div>
-
-                    <div className="p-6">
-                      <h3 className="text-xl font-semibold text-white mb-2 group-hover:text-indigo-400 transition">{salon.name}</h3>
-
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="flex items-center gap-1">
-                          {getStarStates(salon.rating).map((state, i) => (
-                            <div key={i} className="relative h-4 w-4">
-                              <Star className="h-4 w-4 text-slate-600" />
-                              {(state === 'full' || state === 'half') && (
-                                <div className="absolute top-0 left-0 h-4 overflow-hidden" style={{ width: state === 'full' ? '100%' : '50%' }}>
-                                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                        <span className="text-sm text-slate-400">({salon.reviewCount} reviews)</span>
-                      </div>
-
-                      <div className="flex items-start gap-2 mb-4 text-sm text-slate-400">
-                        <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                        <span>{salon.address}</span>
-                      </div>
-
-                      <div className="mb-4">
-                        <p className="text-xs text-slate-500 mb-2">Services</p>
-                        <div className="flex flex-wrap gap-2">
-                          {(salon.services || []).slice(0, 3).map((service, idx) => (
-                            <span key={idx} className="inline-block px-2 py-1 bg-indigo-600/20 text-indigo-300 rounded text-xs">
-                              {service}
-                            </span>
-                          ))}
-                          {(salon.services || []).length > 3 && (
-                            <span className="text-xs text-slate-500">+{(salon.services || []).length - 3} more</span>
-                          )}
-                        </div>
-                      </div>
-
-                      <Button className="w-full bg-indigo-600 hover:bg-indigo-700 h-10">
-                        View Details
-                      </Button>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
         </div>
-      </section>
-    </div>
+
+        {/* AI Smart Search Section */}
+        <div className="bg-slate-900 rounded-lg border border-indigo-500/30 p-6 mb-8">
+          <h2 className="text-lg font-semibold text-white mb-3">🤖 Try AI-Powered Search</h2>
+          <p className="text-slate-400 text-sm mb-4">
+            Search naturally: "keratin treatment under 2000" or "bridal makeup near me"
+          </p>
+          <SmartSearchWidget />
+        </div>
+
+        {/* Results Info */}
+        <div className="mb-4">
+          <p className="text-slate-400">
+            Found <span className="text-white font-semibold">{filteredSalons.length}</span> salons
+            {selectedCity && <span> in {selectedCity}</span>}
+            {searchQuery && <span> matching "{searchQuery}"</span>}
+          </p>
+        </div>
+
+        {/* Salons with Map */}
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          </div>
+        ) : (
+          <SalonsWithMap salons={filteredSalons} showMap={true} onlyNearby={false} />
+        )}
+      </div>
+    </main>
   )
 }
