@@ -18,37 +18,41 @@ export function useAuth() {
   const router = useRouter()
 
   useEffect(() => {
+    let isMounted = true
+    let redirectTimeout: NodeJS.Timeout
+
     const checkAuth = async () => {
       try {
         const session = await getCurrentUser()
-        if (session) {
-          setUser({
-            uid: session.userId,
-            email: session.email,
-            name: session.name,
-            phone: session.phone,
-            userType: session.userType,
-            profilePicture: session.profilePicture,
-            salonId: session.salonId,
-          })
-        } else {
-          // No session found, check if we're on a protected route
-          const pathname = window.location.pathname
-          const isProtectedRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/profile') || pathname.startsWith('/search')
-          if (isProtectedRoute) {
-            console.log('[useAuth] No session found on protected route, redirecting to login')
-            router.push('/auth/login')
+        if (isMounted) {
+          if (session) {
+            setUser({
+              uid: session.userId,
+              email: session.email,
+              name: session.name,
+              phone: session.phone,
+              userType: session.userType,
+              profilePicture: session.profilePicture,
+              salonId: session.salonId,
+            })
           }
         }
       } catch (error) {
-        console.error('Failed to get current user:', error)
+        console.error('[useAuth] Failed to get current user:', error)
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
     checkAuth()
-  }, [router])
+
+    return () => {
+      isMounted = false
+      if (redirectTimeout) clearTimeout(redirectTimeout)
+    }
+  }, [])
 
   const register = useCallback(async (data: {
     email: string

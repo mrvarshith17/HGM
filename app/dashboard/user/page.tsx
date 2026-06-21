@@ -10,6 +10,7 @@ import { createChatRoom } from '@/lib/db-chat-service'
 import { RecommendationWidget } from '@/components/recommendation-widget'
 import { useAuth } from '@/hooks/useAuth'
 import { getQuickBooking, clearQuickBooking } from '@/lib/db-temp-state-service'
+import { AuthGuard } from '@/components/auth-guard'
 
 interface Booking {
   id: string
@@ -270,8 +271,9 @@ export default function UserDashboardPage() {
   )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900">
-      <Navigation />
+    <AuthGuard>
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900">
+        <Navigation />
 
       <section className="px-6 py-12">
         <div className="mx-auto max-w-4xl">
@@ -585,6 +587,7 @@ export default function UserDashboardPage() {
           )}
         </div>
       </section>
-    </div>
+      </div>
+    </AuthGuard>
   )
 }
