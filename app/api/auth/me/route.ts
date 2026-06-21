@@ -1,17 +1,20 @@
 // app/api/auth/me/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getLocalSession } from '@/lib/local-session-store'
+import { decodeSessionCookie, getLocalSession, getSessionCookieName } from '@/lib/local-session-store'
 
 export async function GET(req: NextRequest) {
   try {
     const userId = req.cookies.get('userId')?.value
     const sessionToken = req.cookies.get('sessionToken')?.value
+    const cookieSession = decodeSessionCookie(req.cookies.get(getSessionCookieName())?.value)
 
     if (!userId || !sessionToken) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    const session = await getLocalSession(userId, sessionToken)
+    const session = cookieSession?.userId === userId && cookieSession.sessionToken === sessionToken
+      ? cookieSession
+      : await getLocalSession(userId, sessionToken)
 
     if (!session) {
       return NextResponse.json({ error: 'Session expired' }, { status: 401 })
@@ -30,6 +33,7 @@ export async function POST() {
     const response = NextResponse.json({ success: true })
     response.cookies.delete('sessionToken')
     response.cookies.delete('userId')
+    response.cookies.delete(getSessionCookieName())
     return response
   } catch (error) {
     console.error('[Auth Logout] Error:', error)

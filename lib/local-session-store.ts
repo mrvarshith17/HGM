@@ -16,6 +16,27 @@ export type LocalSession = {
 
 const DATA_DIR = path.join(process.cwd(), '.local-data')
 const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json')
+const SESSION_COOKIE_NAME = 'sessionData'
+
+export function encodeSessionCookie(session: LocalSession) {
+  return Buffer.from(JSON.stringify(session), 'utf8').toString('base64url')
+}
+
+export function decodeSessionCookie(value?: string) {
+  if (!value) {
+    return null
+  }
+
+  try {
+    return JSON.parse(Buffer.from(value, 'base64url').toString('utf8')) as LocalSession
+  } catch {
+    return null
+  }
+}
+
+export function getSessionCookieName() {
+  return SESSION_COOKIE_NAME
+}
 
 async function readSessions() {
   try {

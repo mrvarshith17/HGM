@@ -1,6 +1,6 @@
 // app/api/sessions/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { saveLocalSession } from '@/lib/local-session-store'
+import { encodeSessionCookie, getSessionCookieName, saveLocalSession } from '@/lib/local-session-store'
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,6 +38,12 @@ export async function POST(req: NextRequest) {
       maxAge: 30 * 24 * 60 * 60, // 30 days
     })
     response.cookies.set('userId', userId, {
+      maxAge: 30 * 24 * 60 * 60,
+    })
+    response.cookies.set(getSessionCookieName(), encodeSessionCookie(session), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
       maxAge: 30 * 24 * 60 * 60,
     })
 
