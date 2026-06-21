@@ -1,6 +1,6 @@
 {
   "projects": {
-    "default": "salon-marketplace-b122a"
+    "default": "hgm-app-40d28"
   },
   "hosting": {
     "public": ".next/standalone",

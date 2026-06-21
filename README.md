@@ -119,7 +119,7 @@ Update `firebase.json` with your Firebase project ID:
 ```json
 {
   "projects": {
-    "default": "salon-marketplace-b122a"
+    "default": "hgm-app-40d28"
   }
 }
 ```
@@ -137,7 +137,7 @@ firebase deploy --only hosting
 **What it does:**
 - Uploads your Next.js app to Firebase Hosting
 - Generates SSL certificates automatically
-- Available at: `https://salon-marketplace-b122a.web.app`
+- Available at: `https://hgm-app-40d28.web.app`
 
 #### Step 4: Deploy Firestore Security Rules
 ```bash
@@ -157,11 +157,11 @@ Deploy the AI sentiment analysis microservice:
 cd ai-microservice
 
 # Build Docker image
-gcloud builds submit --tag gcr.io/salon-marketplace-b122a/hgm-ai-service
+gcloud builds submit --tag gcr.io/hgm-app-40d28/hgm-ai-service
 
 # Deploy to Cloud Run
 gcloud run deploy hgm-ai-service \
-  --image gcr.io/salon-marketplace-b122a/hgm-ai-service \
+  --image gcr.io/hgm-app-40d28/hgm-ai-service \
   --platform managed \
   --region asia-south1 \
   --allow-unauthenticated \
@@ -172,12 +172,12 @@ gcloud run deploy hgm-ai-service \
 Update `.env.production` with deployed URLs:
 ```env
 # Firebase
-FIREBASE_PROJECT_ID=salon-marketplace-b122a
+FIREBASE_PROJECT_ID=hgm-app-40d28
 GCP_SERVICE_ACCOUNT=<path-to-firebase-key.json>
 
 # Deployed Services
 NEXT_PUBLIC_AI_API_URL=https://hgm-ai-service-xxxxx.a.run.app
-NEXT_PUBLIC_API_URL=https://salon-marketplace-b122a.web.app/api
+NEXT_PUBLIC_API_URL=https://hgm-app-40d28.web.app/api
 
 # External APIs
 REPLICATE_API_TOKEN=<your-replicate-key>
@@ -193,11 +193,11 @@ This deploys hosting, Firestore rules, and indexes in one command.
 ### Post-Deployment Verification
 - ✅ Check deployment status: `firebase deploy:info`
 - ✅ View logs: `firebase functions:log`
-- ✅ Test frontend: Visit `https://salon-marketplace-b122a.web.app`
+- ✅ Test frontend: Visit `https://hgm-app-40d28.web.app`
 - ✅ Test AI service: `curl https://hgm-ai-service.run.app/health`
 
 ### Monitoring & Maintenance
-- **Firebase Console**: https://console.firebase.google.com/project/salon-marketplace-b122a
+- **Firebase Console**: https://console.firebase.google.com/project/hgm-app-40d28
 - **Cloud Run Dashboard**: https://console.cloud.google.com/run
 - **Firestore Backup**: Enable automatic daily backups in Firebase Console
 

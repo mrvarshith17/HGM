@@ -62,7 +62,7 @@ gcloud auth login
 # Authorize gcloud CLI to access your account
 
 # Set the default project
-gcloud config set project salon-marketplace-b122a
+gcloud config set project hgm-app-40d28
 ```
 
 ---
@@ -72,7 +72,7 @@ gcloud config set project salon-marketplace-b122a
 **CRITICAL:** The app requires a Firestore database instance in the project.
 
 1. Go to: https://console.firebase.google.com
-2. Select project: **salon-marketplace-b122a**
+2. Select project: **hgm-app-40d28**
 3. Go to: **Firestore Database** (left sidebar)
 4. Check if database exists:
    - ✅ If you see "Production", "Development", or "Testing" database → **Continue**
@@ -86,7 +86,7 @@ Google Cloud Run requires billing to be enabled (though you get free tier usage)
 
 1. Go to: https://console.cloud.google.com/billing
 2. Create a billing account or link existing one
-3. Enable billing for project **salon-marketplace-b122a**
+3. Enable billing for project **hgm-app-40d28**
 
 > ℹ️ **Free tier includes:**
 > - 100+ Cloud Run invocations per day
@@ -116,7 +116,7 @@ bash deploy-hosting.sh
 - ✅ Sets up rewrites for Next.js routing
 
 **Result:**
-- 🌍 App available at: `https://salon-marketplace-b122a.web.app`
+- 🌍 App available at: `https://hgm-app-40d28.web.app`
 - ⏱️ Takes ~2-5 minutes
 
 ---
@@ -154,11 +154,11 @@ Create `.env.production` file in project root:
 
 ```env
 # Firebase Configuration
-FIREBASE_PROJECT_ID=salon-marketplace-b122a
+FIREBASE_PROJECT_ID=hgm-app-40d28
 GCP_SERVICE_ACCOUNT=./firebase-key.json
 
 # Deployed URLs
-NEXT_PUBLIC_API_URL=https://salon-marketplace-b122a.web.app/api
+NEXT_PUBLIC_API_URL=https://hgm-app-40d28.web.app/api
 NEXT_PUBLIC_AI_API_URL=https://hgm-ai-service-XXXXX.run.app
 
 # API Keys (from Phase 5 deployment)
@@ -177,7 +177,7 @@ Replace `https://hgm-ai-service-XXXXX.run.app` with the actual URL from Phase 5.
 
 1. **Test Frontend:**
    ```
-   Visit: https://salon-marketplace-b122a.web.app
+   Visit: https://hgm-app-40d28.web.app
    - Should load landing page
    - Click "Register" → Create test account
    - Should work without errors
@@ -186,7 +186,7 @@ Replace `https://hgm-ai-service-XXXXX.run.app` with the actual URL from Phase 5.
 2. **Test Backend API:**
    ```bash
    # Test registration API
-   curl -X POST https://salon-marketplace-b122a.web.app/api/auth/register \
+   curl -X POST https://hgm-app-40d28.web.app/api/auth/register \
      -H "Content-Type: application/json" \
      -d '{
        "email": "test@deployed.com",
@@ -225,7 +225,7 @@ gcloud run logs read hgm-ai-service --region asia-south1 --limit 50
 ```
 
 **Firestore:**
-- Go to: https://console.firebase.google.com/project/salon-marketplace-b122a/firestore
+- Go to: https://console.firebase.google.com/project/hgm-app-40d28/firestore
 - View real-time read/write activity
 
 ### Monitor Costs
@@ -275,7 +275,7 @@ Free tier includes:
 - 50,000 reads/day
 - 20,000 writes/day
 
-Check usage at: https://console.firebase.google.com/project/salon-marketplace-b122a/usage/firestore
+Check usage at: https://console.firebase.google.com/project/hgm-app-40d28/usage/firestore
 
 ### 4. Enable Automatic Backups 💾
 
@@ -290,7 +290,7 @@ Check usage at: https://console.firebase.google.com/project/salon-marketplace-b1
 ### Issue: "Firebase project not found"
 ```bash
 firebase projects:list
-# If salon-marketplace-b122a not shown, update firebase.json
+# If hgm-app-40d28 not shown, update firebase.json
 ```
 
 ### Issue: "Cloud Run deployment times out"
@@ -303,7 +303,7 @@ gcloud builds log BUILD_ID
 ### Issue: "Firestore NOT_FOUND errors"
 ```bash
 # Verify database exists
-gcloud firestore databases list --project salon-marketplace-b122a
+gcloud firestore databases list --project hgm-app-40d28
 # If empty, create database in Firebase Console
 ```
 
@@ -339,7 +339,7 @@ gcloud builds submit --help
 - [ ] Run `deploy-hosting.ps1` (Windows) or `deploy-hosting.sh` (Mac/Linux)
 - [ ] Run `deploy-microservice.ps1` (Windows) or `deploy-microservice.sh` (Mac/Linux)
 - [ ] Update `.env.production` with URLs from Phase 5
-- [ ] Test frontend at `https://salon-marketplace-b122a.web.app`
+- [ ] Test frontend at `https://hgm-app-40d28.web.app`
 - [ ] Test backend API with registration request
 - [ ] Test AI microservice with sentiment analysis
 - [ ] Configure automatic Firestore backups
@@ -351,7 +351,7 @@ gcloud builds submit --help
 
 Your HGM Salon Marketplace is now **live and accessible worldwide** at:
 
-🌍 **https://salon-marketplace-b122a.web.app**
+🌍 **https://hgm-app-40d28.web.app**
 
 ---
 

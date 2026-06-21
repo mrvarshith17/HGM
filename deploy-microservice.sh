@@ -16,7 +16,7 @@ echo "🚀 Starting HGM Python Microservice Deployment to Cloud Run..."
 echo ""
 
 # Configuration
-PROJECT_ID="salon-marketplace-b122a"
+PROJECT_ID="hgm-app-40d28"
 SERVICE_NAME="hgm-ai-service"
 REGION="asia-south1"
 IMAGE_NAME="gcr.io/$PROJECT_ID/$SERVICE_NAME"
