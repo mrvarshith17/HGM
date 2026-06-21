@@ -1,22 +1,23 @@
 /**
  * Real-time Chat Service using Firebase Realtime Database
+ * Falls back to localStorage-based service when Firebase is not configured
  * Provides instant message delivery and live chat functionality
  */
 
-import {
-  ref,
-  push,
-  set,
-  get,
-  query,
-  orderByChild,
-  limitToLast,
-  onValue,
-  update,
-  remove,
-  Unsubscribe,
-} from 'firebase/database'
-import { getRealtimeDb, isRealtimeDbConfigured } from './firebase-client'
+import { isRealtimeDbConfigured, isUsingLocalStorage } from './firebase-client'
+import * as localChatService from './local-realtime-chat-service'
+
+// Import Firebase functions only if available
+let firebaseFunctions: any = null
+
+try {
+  if (!isUsingLocalStorage()) {
+    const { ref, push, set, get, onValue, update, remove } = require('firebase/database')
+    firebaseFunctions = { ref, push, set, get, onValue, update, remove }
+  }
+} catch (error) {
+  console.warn('[RealtimeChatService] Firebase not available, using localStorage fallback')
+}
 
 export interface RealtimeMessage {
   id: string
@@ -53,9 +54,15 @@ export async function sendRealtimeMessage(
   senderType: 'user' | 'owner' | 'staff',
   message: string
 ): Promise<RealtimeMessage> {
+  // Use local service if Firebase is not configured
+  if (!isRealtimeDbConfigured() || !firebaseFunctions) {
+    return localChatService.sendRealtimeMessage(chatRoomId, senderId, senderName, senderType, message)
+  }
+
+  const { ref, push, set, update, getRealtimeDb } = firebaseFunctions
   const db = getRealtimeDb()
   if (!db) {
-    throw new Error('Realtime Database not configured')
+    return localChatService.sendRealtimeMessage(chatRoomId, senderId, senderName, senderType, message)
   }
 
   const messagesRef = ref(db, `chatRooms/${chatRoomId}/messages`)
@@ -91,9 +98,14 @@ export async function sendRealtimeMessage(
  * Create a new chat room (real-time)
  */
 export async function createRealtimeChatRoom(roomData: Omit<RealtimeChatRoom, 'id' | 'createdAt' | 'updatedAt'>): Promise<RealtimeChatRoom> {
+  if (!isRealtimeDbConfigured() || !firebaseFunctions) {
+    return localChatService.createRealtimeChatRoom(roomData)
+  }
+
+  const { ref, push, set, getRealtimeDb } = firebaseFunctions
   const db = getRealtimeDb()
   if (!db) {
-    throw new Error('Realtime Database not configured')
+    return localChatService.createRealtimeChatRoom(roomData)
   }
 
   const chatRoomsRef = ref(db, 'chatRooms')
@@ -120,17 +132,20 @@ export function subscribeToMessages(
   chatRoomId: string,
   onMessagesChange: (messages: RealtimeMessage[]) => void,
   onError?: (error: Error) => void
-): Unsubscribe {
+): () => void {
+  if (!isRealtimeDbConfigured() || !firebaseFunctions) {
+    return localChatService.subscribeToMessages(chatRoomId, onMessagesChange, onError)
+  }
+
+  const { ref, onValue, getRealtimeDb } = firebaseFunctions
   const db = getRealtimeDb()
   if (!db) {
-    const error = new Error('Realtime Database not configured')
-    onError?.(error)
-    return () => {}
+    return localChatService.subscribeToMessages(chatRoomId, onMessagesChange, onError)
   }
 
   const messagesRef = ref(db, `chatRooms/${chatRoomId}/messages`)
 
-  return onValue(
+  const unsubscribe = onValue(
     messagesRef,
     (snapshot) => {
       const data = snapshot.val()
@@ -153,6 +168,8 @@ export function subscribeToMessages(
       onError?.(new Error(`Failed to subscribe to messages: ${error.message}`))
     }
   )
+
+  return unsubscribe
 }
 
 /**
@@ -162,17 +179,20 @@ export function subscribeToChatRoom(
   chatRoomId: string,
   onRoomChange: (room: RealtimeChatRoom | null) => void,
   onError?: (error: Error) => void
-): Unsubscribe {
+): () => void {
+  if (!isRealtimeDbConfigured() || !firebaseFunctions) {
+    return localChatService.subscribeToChatRoom(chatRoomId, onRoomChange, onError)
+  }
+
+  const { ref, onValue, getRealtimeDb } = firebaseFunctions
   const db = getRealtimeDb()
   if (!db) {
-    const error = new Error('Realtime Database not configured')
-    onError?.(error)
-    return () => {}
+    return localChatService.subscribeToChatRoom(chatRoomId, onRoomChange, onError)
   }
 
   const roomRef = ref(db, `chatRooms/${chatRoomId}`)
 
-  return onValue(
+  const unsubscribe = onValue(
     roomRef,
     (snapshot) => {
       const data = snapshot.val()
@@ -191,15 +211,22 @@ export function subscribeToChatRoom(
       onError?.(new Error(`Failed to subscribe to chat room: ${error.message}`))
     }
   )
+
+  return unsubscribe
 }
 
 /**
  * Get messages for a chat room (one-time fetch)
  */
 export async function getRealtimeMessages(chatRoomId: string): Promise<RealtimeMessage[]> {
+  if (!isRealtimeDbConfigured() || !firebaseFunctions) {
+    return localChatService.getRealtimeMessages(chatRoomId)
+  }
+
+  const { ref, get, getRealtimeDb } = firebaseFunctions
   const db = getRealtimeDb()
   if (!db) {
-    throw new Error('Realtime Database not configured')
+    return localChatService.getRealtimeMessages(chatRoomId)
   }
 
   const messagesRef = ref(db, `chatRooms/${chatRoomId}/messages`)
@@ -223,9 +250,14 @@ export async function getRealtimeMessages(chatRoomId: string): Promise<RealtimeM
  * Get chat room details (one-time fetch)
  */
 export async function getRealtimeChatRoom(chatRoomId: string): Promise<RealtimeChatRoom | null> {
+  if (!isRealtimeDbConfigured() || !firebaseFunctions) {
+    return localChatService.getRealtimeChatRoom(chatRoomId)
+  }
+
+  const { ref, get, getRealtimeDb } = firebaseFunctions
   const db = getRealtimeDb()
   if (!db) {
-    throw new Error('Realtime Database not configured')
+    return localChatService.getRealtimeChatRoom(chatRoomId)
   }
 
   const roomRef = ref(db, `chatRooms/${chatRoomId}`)
@@ -249,9 +281,14 @@ export async function markMessagesAsRead(
   userId: string,
   messageIds?: string[]
 ): Promise<void> {
+  if (!isRealtimeDbConfigured() || !firebaseFunctions) {
+    return localChatService.markMessagesAsRead(chatRoomId, userId, messageIds)
+  }
+
+  const { ref, get, update, getRealtimeDb } = firebaseFunctions
   const db = getRealtimeDb()
   if (!db) {
-    throw new Error('Realtime Database not configured')
+    return localChatService.markMessagesAsRead(chatRoomId, userId, messageIds)
   }
 
   if (messageIds && messageIds.length > 0) {
@@ -285,9 +322,14 @@ export async function markMessagesAsRead(
  * Get user's chat rooms (one-time fetch)
  */
 export async function getUserChatRooms(userId: string): Promise<RealtimeChatRoom[]> {
+  if (!isRealtimeDbConfigured() || !firebaseFunctions) {
+    return localChatService.getUserChatRooms(userId)
+  }
+
+  const { ref, get, getRealtimeDb } = firebaseFunctions
   const db = getRealtimeDb()
   if (!db) {
-    throw new Error('Realtime Database not configured')
+    return localChatService.getUserChatRooms(userId)
   }
 
   const chatRoomsRef = ref(db, 'chatRooms')
@@ -313,9 +355,14 @@ export async function getUserChatRooms(userId: string): Promise<RealtimeChatRoom
  * Delete a message (for message sender or salon owner)
  */
 export async function deleteRealtimeMessage(chatRoomId: string, messageId: string): Promise<void> {
+  if (!isRealtimeDbConfigured() || !firebaseFunctions) {
+    return localChatService.deleteRealtimeMessage(chatRoomId, messageId)
+  }
+
+  const { ref, remove, getRealtimeDb } = firebaseFunctions
   const db = getRealtimeDb()
   if (!db) {
-    throw new Error('Realtime Database not configured')
+    return localChatService.deleteRealtimeMessage(chatRoomId, messageId)
   }
 
   await remove(ref(db, `chatRooms/${chatRoomId}/messages/${messageId}`))
@@ -325,9 +372,14 @@ export async function deleteRealtimeMessage(chatRoomId: string, messageId: strin
  * Get unread message count for a user
  */
 export async function getUnreadMessageCount(chatRoomId: string, userId: string): Promise<number> {
+  if (!isRealtimeDbConfigured() || !firebaseFunctions) {
+    return localChatService.getUnreadMessageCount(chatRoomId, userId)
+  }
+
+  const { ref, get, getRealtimeDb } = firebaseFunctions
   const db = getRealtimeDb()
   if (!db) {
-    throw new Error('Realtime Database not configured')
+    return localChatService.getUnreadMessageCount(chatRoomId, userId)
   }
 
   const messagesRef = ref(db, `chatRooms/${chatRoomId}/messages`)

@@ -1,13 +1,11 @@
 /**
  * Firebase client-side configuration for real-time messaging
- * Uses Firebase Realtime Database for instant message delivery
+ * Falls back to localStorage when Firebase is not configured
  */
 
-import { initializeApp, FirebaseApp } from 'firebase/app'
-import { getDatabase, Database } from 'firebase/database'
-
-let app: FirebaseApp | null = null
-let db: Database | null = null
+let app: any = null
+let db: any = null
+let usingLocalStorage = false
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -19,22 +17,34 @@ const firebaseConfig = {
   databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
 }
 
-export function getFirebaseApp(): FirebaseApp {
+export function getFirebaseApp(): any {
   if (app) {
     return app
   }
 
-  // Validate config
+  // Check if Firebase config is available
   if (!firebaseConfig.projectId) {
-    console.warn('Firebase config incomplete. Real-time chat may not work. Check environment variables.')
-    return null as unknown as FirebaseApp
+    console.warn('[Firebase Client] Config incomplete. Using localStorage fallback.')
+    usingLocalStorage = true
+    return null
   }
 
-  app = initializeApp(firebaseConfig)
-  return app
+  try {
+    const { initializeApp } = require('firebase/app')
+    app = initializeApp(firebaseConfig)
+    return app
+  } catch (error) {
+    console.warn('[Firebase Client] Initialization failed, using localStorage fallback:', error)
+    usingLocalStorage = true
+    return null
+  }
 }
 
-export function getRealtimeDb(): Database | null {
+export function getRealtimeDb(): any {
+  if (usingLocalStorage) {
+    return null
+  }
+
   try {
     if (db) {
       return db
@@ -45,14 +55,19 @@ export function getRealtimeDb(): Database | null {
       return null
     }
 
+    const { getDatabase } = require('firebase/database')
     db = getDatabase(firebaseApp)
     return db
   } catch (error) {
-    console.error('Failed to initialize Realtime Database:', error)
+    console.error('[Firebase Client] Failed to initialize Realtime Database:', error)
     return null
   }
 }
 
 export function isRealtimeDbConfigured(): boolean {
-  return !!process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL
+  return !!process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL && !usingLocalStorage
+}
+
+export function isUsingLocalStorage(): boolean {
+  return usingLocalStorage
 }
