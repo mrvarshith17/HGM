@@ -587,7 +587,7 @@ export default function UserDashboardPage() {
           )}
         </div>
       </section>
-      </div>
+    </div>
     </AuthGuard>
   )
 }
