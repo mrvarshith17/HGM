@@ -1,6 +1,16 @@
 {
   "projects": {
-    "default": "hgm-app-40d28"
+    "default": "salon-marketplace-b122a"
+  },
+  "hosting": {
+    "public": ".next/standalone",
+    "cleanUrls": true,
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
   },
   "firestore": {
     "database": "default",

@@ -104,6 +104,105 @@ node server.js
 
 ---
 
+## 🚢 Deployment Guide
+
+### Prerequisites
+- Firebase CLI installed: `npm install -g firebase-tools`
+- Logged into Firebase: `firebase login`
+- Python microservice ready for deployment
+- Environment variables configured
+
+### Deployment Steps
+
+#### Step 1: Update Firebase Project Reference
+Update `firebase.json` with your Firebase project ID:
+```json
+{
+  "projects": {
+    "default": "salon-marketplace-b122a"
+  }
+}
+```
+
+#### Step 2: Build Next.js Application
+```bash
+pnpm build
+```
+This generates optimized production build in `.next/` directory.
+
+#### Step 3: Deploy to Firebase Hosting
+```bash
+firebase deploy --only hosting
+```
+**What it does:**
+- Uploads your Next.js app to Firebase Hosting
+- Generates SSL certificates automatically
+- Available at: `https://salon-marketplace-b122a.web.app`
+
+#### Step 4: Deploy Firestore Security Rules
+```bash
+firebase deploy --only firestore:rules
+```
+**Important:** Current rules expire on **July 21, 2026**. Update permanent rules before expiration.
+
+#### Step 5: Deploy Firestore Indexes (if needed)
+```bash
+firebase deploy --only firestore:indexes
+```
+
+#### Step 6: Deploy Python Microservice to Cloud Run
+Deploy the AI sentiment analysis microservice:
+
+```bash
+cd ai-microservice
+
+# Build Docker image
+gcloud builds submit --tag gcr.io/salon-marketplace-b122a/hgm-ai-service
+
+# Deploy to Cloud Run
+gcloud run deploy hgm-ai-service \
+  --image gcr.io/salon-marketplace-b122a/hgm-ai-service \
+  --platform managed \
+  --region asia-south1 \
+  --allow-unauthenticated \
+  --set-env-vars "PORT=8000"
+```
+
+#### Step 7: Update Environment Variables
+Update `.env.production` with deployed URLs:
+```env
+# Firebase
+FIREBASE_PROJECT_ID=salon-marketplace-b122a
+GCP_SERVICE_ACCOUNT=<path-to-firebase-key.json>
+
+# Deployed Services
+NEXT_PUBLIC_AI_API_URL=https://hgm-ai-service-xxxxx.a.run.app
+NEXT_PUBLIC_API_URL=https://salon-marketplace-b122a.web.app/api
+
+# External APIs
+REPLICATE_API_TOKEN=<your-replicate-key>
+GCP_API_KEY=<your-google-maps-key>
+```
+
+#### Step 8: Deploy All at Once (Recommended)
+```bash
+firebase deploy
+```
+This deploys hosting, Firestore rules, and indexes in one command.
+
+### Post-Deployment Verification
+- ✅ Check deployment status: `firebase deploy:info`
+- ✅ View logs: `firebase functions:log`
+- ✅ Test frontend: Visit `https://salon-marketplace-b122a.web.app`
+- ✅ Test AI service: `curl https://hgm-ai-service.run.app/health`
+
+### Monitoring & Maintenance
+- **Firebase Console**: https://console.firebase.google.com/project/salon-marketplace-b122a
+- **Cloud Run Dashboard**: https://console.cloud.google.com/run
+- **Firestore Backup**: Enable automatic daily backups in Firebase Console
+
+---
+
 ## ✨ Features
 
 ### For Customers
@@ -156,8 +255,22 @@ node server.js
 
 ## 🔒 Security Considerations
 1. **Firebase Keys**: `firebase-key.json` and `.env.local` are explicitly ignored in `.gitignore` to prevent credential leaks.
-2. **Firestore Rules**: Database is secured to ensure users can only modify their own bookings and salon owners can only manage their own salons.
+2. **Firestore Rules**: 
+   - ⚠️ **Current rules expire on July 21, 2026** (temporary public access for development)
+   - **Before production**: Replace with proper auth-based rules ensuring users can only modify their own data
+   - **Recommended production rules**:
+     ```
+     match /users/{userId} {
+       allow read, write: if request.auth.uid == userId;
+     }
+     match /salons/{salonId} {
+       allow read: if true;
+       allow write: if request.auth.uid == resource.data.ownerId;
+     }
+     ```
 3. **API Validation**: Backend routes sanitize and validate incoming requests.
+4. **Environment Variables**: Keep all secrets in `.env.local` (never commit to repo).
+5. **Service Account**: Rotate `firebase-key.json` credentials regularly for production deployments.
 
 ---
 
