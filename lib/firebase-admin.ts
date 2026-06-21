@@ -37,10 +37,21 @@ export const adminAuth = getAuth()
 let firestoreDb: any = null
 
 try {
+  // Try to get the default database first
   firestoreDb = getFirestore()
   console.log('[Firebase Admin] Firestore database initialized')
 } catch (error) {
-  console.error('[Firebase Admin] Failed to initialize Firestore:', error)
+  console.error('[Firebase Admin] Failed to initialize Firestore:', error instanceof Error ? error.message : error)
+  
+  // If default database doesn't exist, provide helpful message
+  const errorMsg = error instanceof Error ? error.message : String(error)
+  if (errorMsg.includes('NOT_FOUND') || errorMsg.includes('PERMISSION_DENIED')) {
+    console.error('[Firebase Admin] Firestore database not found. Please ensure:')
+    console.error('1. Firestore is enabled in your Firebase Console')
+    console.error('2. A default Firestore database exists')
+    console.error('3. Service account has proper permissions')
+  }
+  
   throw error
 }
 
