@@ -31,6 +31,14 @@ export function useAuth() {
             profilePicture: session.profilePicture,
             salonId: session.salonId,
           })
+        } else {
+          // No session found, check if we're on a protected route
+          const pathname = window.location.pathname
+          const isProtectedRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/profile') || pathname.startsWith('/search')
+          if (isProtectedRoute) {
+            console.log('[useAuth] No session found on protected route, redirecting to login')
+            router.push('/auth/login')
+          }
         }
       } catch (error) {
         console.error('Failed to get current user:', error)
@@ -40,7 +48,7 @@ export function useAuth() {
     }
 
     checkAuth()
-  }, [])
+  }, [router])
 
   const register = useCallback(async (data: {
     email: string
@@ -123,7 +131,11 @@ export function useAuth() {
         salonId: session.salonId,
       })
 
-      router.push(session.userType === 'customer' ? '/search' : '/dashboard/owner')
+      // Wait a moment for cookies to be set before redirecting
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      const redirectPath = session.userType === 'customer' ? '/dashboard/user' : '/dashboard/owner'
+      router.push(redirectPath)
     } catch (error) {
       console.error('Login error:', error)
       throw error

@@ -7,7 +7,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { userId, email, name, phone, userType, salonId, profilePicture } = body
 
+    console.log('[Sessions API] Creating session for userId:', userId)
+
     if (!userId) {
+      console.log('[Sessions API] Missing userId')
       return NextResponse.json({ error: 'userId is required' }, { status: 400 })
     }
 
@@ -28,6 +31,7 @@ export async function POST(req: NextRequest) {
     }
 
     await saveLocalSession(session)
+    console.log('[Sessions API] Session saved successfully')
 
     // Set cookie for session
     const response = NextResponse.json(session)
@@ -47,6 +51,7 @@ export async function POST(req: NextRequest) {
       maxAge: 30 * 24 * 60 * 60,
     })
 
+    console.log('[Sessions API] Cookies set, returning session')
     return response
   } catch (error) {
     console.error('[Sessions API] Error:', error)

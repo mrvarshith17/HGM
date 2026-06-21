@@ -8,7 +8,10 @@ export async function GET(req: NextRequest) {
     const sessionToken = req.cookies.get('sessionToken')?.value
     const cookieSession = decodeSessionCookie(req.cookies.get(getSessionCookieName())?.value)
 
+    console.log('[Auth Me] userId:', userId, 'sessionToken:', !!sessionToken, 'cookieSession:', !!cookieSession)
+
     if (!userId || !sessionToken) {
+      console.log('[Auth Me] Missing userId or sessionToken')
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
@@ -16,7 +19,10 @@ export async function GET(req: NextRequest) {
       ? cookieSession
       : await getLocalSession(userId, sessionToken)
 
+    console.log('[Auth Me] Session found:', !!session)
+
     if (!session) {
+      console.log('[Auth Me] No session found in store or cookie validation failed')
       return NextResponse.json({ error: 'Session expired' }, { status: 401 })
     }
 
