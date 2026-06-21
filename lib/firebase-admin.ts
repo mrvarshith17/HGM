@@ -1,7 +1,10 @@
 /**
  * Firebase Admin SDK
- * Falls back to localStorage-based store when Firebase is not available
+ * Falls back to localStorage-based implementations when Firebase is not available
  */
+
+import { usersStore } from './local-data-store'
+import { findLocalAuthUserByEmail, createLocalAuthUser } from './local-auth-store'
 
 let adminAuth: any = null
 let adminDb: any = null
@@ -58,48 +61,201 @@ try {
   usingLocalStorage = true
 }
 
-// Create a mock adminDb object that works with localStorage if Firebase is not available
+// Create mock adminAuth object for local storage fallback
+if (usingLocalStorage || !adminAuth) {
+  console.log('[Firebase Admin] Using localStorage fallback for auth operations')
+  
+  adminAuth = {
+    createUser: async (userRecord: any) => {
+      const uid = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      
+      if (!userRecord.email) {
+        throw new Error('Email is required')
+      }
+
+      const existingUser = await findLocalAuthUserByEmail(userRecord.email.toLowerCase())
+      if (existingUser) {
+        const error: any = new Error('The email address is already in use by another account.')
+        error.code = 'auth/email-already-exists'
+        throw error
+      }
+
+      // Create the user
+      const user = await createLocalAuthUser({
+        uid,
+        email: userRecord.email.toLowerCase(),
+        displayName: userRecord.displayName || '',
+        passwordHash: '', // Will be set separately
+        passwordSalt: '',
+      })
+
+      return {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+      }
+    },
+
+    getUser: async (uid: string) => {
+      // Try to get from local store
+      const users = usersStore.getAll()
+      const user = users.find((u: any) => u.uid === uid)
+      
+      if (!user) {
+        const error: any = new Error('User not found')
+        error.code = 'auth/user-not-found'
+        throw error
+      }
+
+      return {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.name || '',
+      }
+    },
+
+    getUserByEmail: async (email: string) => {
+      const user = await findLocalAuthUserByEmail(email.toLowerCase())
+      
+      if (!user) {
+        const error: any = new Error('User not found')
+        error.code = 'auth/user-not-found'
+        throw error
+      }
+
+      return {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName || '',
+      }
+    },
+
+    updateUser: async (uid: string, updates: any) => {
+      console.log(`[LocalStorage] Updating user ${uid}:`, updates)
+      return { uid, ...updates }
+    },
+
+    deleteUser: async (uid: string) => {
+      console.log(`[LocalStorage] Deleting user ${uid}`)
+    },
+  }
+}
+
+// Create mock adminDb object with proper Firestore-like API
 if (usingLocalStorage || !adminDb) {
   console.log('[Firebase Admin] Using localStorage fallback for database operations')
   
+  // Helper to create a document reference wrapper
+  const createDocRef = (collectionName: string, docId: string) => {
+    return {
+      get: async () => {
+        const data = usersStore.findById(docId) || {}
+        return {
+          exists: Object.keys(data).length > 0,
+          data: () => data,
+          id: docId,
+        }
+      },
+      set: async (data: any) => {
+        console.log(`[LocalStorage] Set ${collectionName}/${docId}:`, data)
+        if (collectionName === 'users') {
+          usersStore.set(docId, { uid: docId, ...data })
+        }
+        return { id: docId }
+      },
+      update: async (data: any) => {
+        console.log(`[LocalStorage] Update ${collectionName}/${docId}:`, data)
+        if (collectionName === 'users') {
+          const existing = usersStore.findById(docId) || {}
+          usersStore.set(docId, { ...existing, ...data })
+        }
+      },
+      delete: async () => {
+        console.log(`[LocalStorage] Delete ${collectionName}/${docId}`)
+      },
+    }
+  }
+
+  // Helper to create a query builder
+  const createQuery = (collectionName: string, constraints: Array<{ field: string; operator: string; value: any }> = []) => {
+    return {
+      where: (field: string, operator: string, value: any) => {
+        return createQuery(collectionName, [...constraints, { field, operator, value }])
+      },
+      limit: (n: number) => {
+        return createQuery(collectionName, constraints)
+      },
+      get: async () => {
+        const allDocs = usersStore.getAll()
+        
+        // Apply filters
+        let filtered = allDocs
+        for (const constraint of constraints) {
+          filtered = filtered.filter((doc: any) => {
+            const docValue = doc[constraint.field]
+            switch (constraint.operator) {
+              case '==':
+                return docValue === constraint.value
+              case '<':
+                return docValue < constraint.value
+              case '<=':
+                return docValue <= constraint.value
+              case '>':
+                return docValue > constraint.value
+              case '>=':
+                return docValue >= constraint.value
+              case '!=':
+                return docValue !== constraint.value
+              case 'in':
+                return Array.isArray(constraint.value) && constraint.value.includes(docValue)
+              case 'array-contains':
+                return Array.isArray(docValue) && docValue.includes(constraint.value)
+              default:
+                return true
+            }
+          })
+        }
+
+        return {
+          docs: filtered.map((data: any) => ({
+            id: data.uid || data.id,
+            data: () => data,
+            exists: true,
+          })),
+          empty: filtered.length === 0,
+        }
+      },
+    }
+  }
+
   adminDb = {
     collection: (collectionName: string) => {
       return {
-        doc: (docId: string) => {
-          return {
-            get: async () => ({
-              exists: true,
-              data: () => ({}),
-              id: docId,
-            }),
-            set: async (data: any) => {
-              // localStorage fallback
-              console.log(`[LocalStorage] Setting ${collectionName}/${docId}`)
-            },
-            update: async (data: any) => {
-              console.log(`[LocalStorage] Updating ${collectionName}/${docId}`)
-            },
-            delete: async () => {
-              console.log(`[LocalStorage] Deleting ${collectionName}/${docId}`)
-            },
-          }
-        },
+        doc: (docId: string) => createDocRef(collectionName, docId),
         add: async (data: any) => {
-          console.log(`[LocalStorage] Adding to ${collectionName}`)
-          return { id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}` }
+          const docId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+          console.log(`[LocalStorage] Add to ${collectionName}:`, data)
+          if (collectionName === 'users') {
+            usersStore.set(docId, { ...data, uid: docId, id: docId })
+          }
+          return { id: docId }
         },
         where: (field: string, operator: string, value: any) => {
-          return {
-            get: async () => ({
-              docs: [],
-              empty: true,
-            }),
-          }
+          return createQuery(collectionName, [{ field, operator, value }])
         },
-        get: async () => ({
-          docs: [],
-          empty: true,
-        }),
+        get: async () => {
+          if (collectionName === 'users') {
+            const docs = usersStore.getAll()
+            return {
+              docs: docs.map((data: any) => ({
+                id: data.uid || data.id,
+                data: () => data,
+              })),
+              empty: docs.length === 0,
+            }
+          }
+          return { docs: [], empty: true }
+        },
       }
     },
   }
