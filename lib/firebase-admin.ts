@@ -67,33 +67,11 @@ if (usingLocalStorage || !adminAuth) {
   
   adminAuth = {
     createUser: async (userRecord: any) => {
-      const uid = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      
-      if (!userRecord.email) {
-        throw new Error('Email is required')
-      }
-
-      const existingUser = await findLocalAuthUserByEmail(userRecord.email.toLowerCase())
-      if (existingUser) {
-        const error: any = new Error('The email address is already in use by another account.')
-        error.code = 'auth/email-already-exists'
-        throw error
-      }
-
-      // Create the user
-      const user = await createLocalAuthUser({
-        uid,
-        email: userRecord.email.toLowerCase(),
-        displayName: userRecord.displayName || '',
-        passwordHash: '', // Will be set separately
-        passwordSalt: '',
-      })
-
-      return {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-      }
+      // In fallback mode, throw to trigger the local auth fallback in the calling code
+      // This allows the register route to use its local auth password hashing logic
+      const error: any = new Error('Firebase Auth is not configured')
+      error.code = 'auth/configuration-not-found'
+      throw error
     },
 
     getUser: async (uid: string) => {
@@ -132,7 +110,14 @@ if (usingLocalStorage || !adminAuth) {
 
     updateUser: async (uid: string, updates: any) => {
       console.log(`[LocalStorage] Updating user ${uid}:`, updates)
+      // In production, this would update the auth user
+      // For now, just return success
       return { uid, ...updates }
+    },
+
+    setCustomUserClaims: async (uid: string, customClaims: any) => {
+      console.log(`[LocalStorage] Setting custom claims for user ${uid}:`, customClaims)
+      return Promise.resolve()
     },
 
     deleteUser: async (uid: string) => {
