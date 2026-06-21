@@ -153,7 +153,7 @@ export default function SalonDetailPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId,
+          userId: user.uid,
           salonId,
           salonName: salon?.name,
           customerName,

@@ -1,5 +1,6 @@
 // app/api/auth/me/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { getLocalSession } from '@/lib/local-session-store'
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,17 +11,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    // In production, verify session from database
-    // For now, fetch from session store
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/sessions/${userId}`, {
-      headers: { 'Content-Type': 'application/json' },
-    })
+    const session = await getLocalSession(userId, sessionToken)
 
-    if (!response.ok) {
+    if (!session) {
       return NextResponse.json({ error: 'Session expired' }, { status: 401 })
     }
 
-    const session = await response.json()
     return NextResponse.json(session)
   } catch (error) {
     console.error('[Auth Me] Error:', error)
@@ -28,7 +24,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   try {
     // Logout endpoint
     const response = NextResponse.json({ success: true })

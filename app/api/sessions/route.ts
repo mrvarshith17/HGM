@@ -1,7 +1,6 @@
 // app/api/sessions/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-
-const SESSIONS: Map<string, any> = new Map()
+import { saveLocalSession } from '@/lib/local-session-store'
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,7 +27,7 @@ export async function POST(req: NextRequest) {
       expiresAt,
     }
 
-    SESSIONS.set(userId, session)
+    await saveLocalSession(session)
 
     // Set cookie for session
     const response = NextResponse.json(session)

@@ -1,41 +1,39 @@
 // app/api/sessions/[userId]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { deleteLocalSession, getLocalSession, updateLocalSession } from '@/lib/local-session-store'
 
-const SESSIONS: Map<string, any> = new Map()
+type RouteContext = {
+  params: Promise<{ userId: string }>
+}
 
-export async function GET(req: NextRequest, { params }: { params: { userId: string } }) {
+export async function GET(req: NextRequest, { params }: RouteContext) {
   try {
-    const { userId } = params
+    const { userId } = await params
+    const sessionToken = req.cookies.get('sessionToken')?.value
 
-    // In production, fetch from database
-    if (!SESSIONS.has(userId)) {
+    const session = await getLocalSession(userId, sessionToken)
+
+    if (!session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
-    return NextResponse.json(SESSIONS.get(userId))
+    return NextResponse.json(session)
   } catch (error) {
     console.error('[Get Session] Error:', error)
     return NextResponse.json({ error: 'Failed to fetch session' }, { status: 500 })
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { userId: string } }) {
+export async function PUT(req: NextRequest, { params }: RouteContext) {
   try {
-    const { userId } = params
+    const { userId } = await params
     const body = await req.json()
 
-    if (!SESSIONS.has(userId)) {
+    const updatedSession = await updateLocalSession(userId, body)
+
+    if (!updatedSession) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
-
-    const session = SESSIONS.get(userId)
-    const updatedSession = {
-      ...session,
-      ...body,
-      userId, // Ensure userId doesn't change
-    }
-
-    SESSIONS.set(userId, updatedSession)
 
     return NextResponse.json(updatedSession)
   } catch (error) {
@@ -44,11 +42,11 @@ export async function PUT(req: NextRequest, { params }: { params: { userId: stri
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { userId: string } }) {
+export async function DELETE(req: NextRequest, { params }: RouteContext) {
   try {
-    const { userId } = params
+    const { userId } = await params
 
-    SESSIONS.delete(userId)
+    await deleteLocalSession(userId)
 
     const response = NextResponse.json({ success: true })
     response.cookies.delete('sessionToken')

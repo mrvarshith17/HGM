@@ -135,7 +135,7 @@ export default function UserChatPage() {
           {selectedRoom ? (
             <ChatWidget
               chatRoomId={selectedRoom.chatRoomId}
-              userId={userId}
+              userId={user.uid}
               senderName="Customer"
               senderType="user"
             />
