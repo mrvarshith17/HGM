@@ -8,6 +8,9 @@ import { useAuth } from '@/hooks/useAuth'
 import type { ChatRoom } from '@/lib/db-chat-service'
 import { MessageCircle } from 'lucide-react'
 
+// Prevent static generation for dynamic user content
+export const dynamic = 'force-dynamic'
+
 interface Salon {
   id: string
   name: string
@@ -127,7 +130,7 @@ export default function SalonChatPage() {
     return () => clearInterval(interval)
   }, [salons])
 
-  if (!ownerId) {
+  if (!user) {
     return <div className="p-8">Loading...</div>
   }
 

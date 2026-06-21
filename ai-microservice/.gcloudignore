@@ -1,0 +1,52 @@
+# Git
+.git
+.gitignore
+
+# Dependencies
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+
+# Testing
+.pytest_cache/
+.coverage/
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backups
+*.bak
+*.backup
+*_old.py
+
+# Local files
+.env.local
+.env.development.local
+*.json.local
+
+# Node modules (if any frontend dependencies)
+node_modules/
+.pnpm-debug.log
+
+# Build artifacts
+dist/
+build/
+
+# Documentation
+docs/
+*.md
+
+# Docker (don't upload docker files, they'll be used)
+.dockerignore
